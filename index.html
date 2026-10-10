@@ -3,34 +3,27 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>
-      Kanban Task Board with HTML &amp; CSS 📋 | Project Management UI
-    </title>
+    <title>My Productivity Board</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
     <div class="kanban-board">
       <header class="board-header">
         <div>
-          <p class="eyebrow">PROJECT WORKSPACE</p>
-          <h1>Website Redesign</h1>
+          <p class="eyebrow">PERSONAL WORKSPACE</p>
+          <h1>My Productivity Board</h1>
         </div>
 
         <div class="board-actions">
-          <button type="button">＋ Add Task</button>
-          <button class="more-button" type="button" aria-label="More options">
-            •••
-          </button>
+          <button type="button" id="add-task-btn">＋ Add Task</button>
         </div>
       </header>
 
       <div class="board-meta">
-        
-        </div>
+        <span id="today-label" class="board-info"></span>
 
         <div class="board-info">
-          <span id="total_count">0</span>
-          <span>◷ Due Sep 30</span>
+          <span>▣ <span id="total-count">0</span> Tasks</span>
         </div>
       </div>
 
@@ -40,44 +33,14 @@
             <div>
               <span class="status-dot gray"></span>
               <h2>To Do</h2>
-              <span class="task-count">3</span>
+              <span class="task-count" id="count-todo">0</span>
             </div>
-
-            <button type="button">＋</button>
+            <button type="button" class="column-add" data-status="todo">
+              ＋
+            </button>
           </header>
 
-          <div id="list-todo">
-            <article class="task-card">
-              <div class="task-top">
-                <span class="task-label purple">${task.color}</span>
-                <span class="task-label purple">${task.label}</span>
-                <button type="button">•••</button>
-              </div>
-
-              <h3>${task.title}</h3>
-              <p>${task.description}</p>
-
-              <div class="task-footer">
-                <span class="due-date">${task.dueDate}</span>
-              </div>
-            </article>
-
-            <article class="task-card">
-              <div class="task-top">
-                <span class="task-label blue">CONTENT</span>
-                <button type="button">•••</button>
-              </div>
-
-              <h3>Write landing page copy</h3>
-              <p>Finalize headline, features and CTA text.</p>
-
-              <div class="task-footer">
-                <span class="due-date">◷ Sep 20</span>
-              </div>
-            </article>
-          </div>
-
-          <button class="add-task-button" type="button">＋ Add new task</button>
+          <div class="task-list" id="list-todo"></div>
         </section>
 
         <section class="kanban-column" data-status="progress">
@@ -85,55 +48,14 @@
             <div>
               <span class="status-dot orange"></span>
               <h2>In Progress</h2>
-              <span class="task-count">2</span>
+              <span class="task-count" id="count-progress">0</span>
             </div>
-
-            <button type="button">＋</button>
+            <button type="button" class="column-add" data-status="progress">
+              ＋
+            </button>
           </header>
 
-          <div id="list-progress">
-            <article class="task-card highlighted">
-              <div class="task-top">
-                <span class="task-label orange">DEVELOPMENT</span>
-                <button type="button">•••</button>
-              </div>
-
-              <h3>Build responsive navigation</h3>
-              <p>Make the navigation work across all screen sizes.</p>
-
-              <div class="checklist">
-                <div class="checklist-label">
-                  <span>Checklist</span>
-                  <strong>3/5</strong>
-                </div>
-
-                <div class="checklist-track">
-                  <span></span>
-                </div>
-              </div>
-
-              <div class="task-footer">
-                <span class="due-date">◷ Sep 22</span>
-              </div>
-            </article>
-
-            <article class="task-card">
-              <div class="task-top">
-                <span class="task-label pink">RESEARCH</span>
-                <button type="button">•••</button>
-              </div>
-
-              <h3>Review competitor websites</h3>
-              <p>Collect design references and useful patterns.</p>
-
-              <div class="task-footer">
-                <span class="due-date">◷ Sep 24</span>
-                
-              </div>
-            </article>
-          </div>
-
-          <button class="add-task-button" type="button">＋ Add new task</button>
+          <div class="task-list" id="list-progress"></div>
         </section>
 
         <section class="kanban-column" data-status="done">
@@ -141,48 +63,44 @@
             <div>
               <span class="status-dot green"></span>
               <h2>Completed</h2>
-              <span class="task-count">2</span>
+              <span class="task-count" id="count-done">0</span>
             </div>
-
-            <button type="button">＋</button>
+            <button type="button" class="column-add" data-status="done">
+              ＋
+            </button>
           </header>
 
-          <div id="list-done">
-            <article class="task-card completed-card">
-              <div class="task-top">
-                <span class="task-label green-label">COMPLETED</span>
-                <button type="button">•••</button>
-              </div>
-
-              <h3>Set up project structure</h3>
-              <p>Organize files, tools and development workflow.</p>
-
-              <div class="task-footer">
-                <span class="done-date">✓ Completed</span>
-                
-              </div>
-            </article>
-
-            <article class="task-card completed-card">
-              <div class="task-top">
-                <span class="task-label green-label">COMPLETED</span>
-                <button type="button">•••</button>
-              </div>
-
-              <h3>Choose color palette</h3>
-              <p>Finalize the primary and secondary brand colors.</p>
-
-              <div class="task-footer">
-                <span class="done-date">✓ Completed</span>
-                
-              </div>
-            </article>
-          </div>
-
-          <button class="add-task-button" type="button">＋ Add new task</button>
+          <div class="task-list" id="list-done"></div>
         </section>
       </main>
     </div>
-    <script src="./index.js"></script>
+
+    <dialog id="task-dialog">
+      <form id="task-form">
+        <h2>New Task</h2>
+        <input type="text" id="task-title" placeholder="Title" required />
+        <input type="text" id="task-desc" placeholder="Description" />
+        <input type="text" id="task-label" placeholder="Label (e.g. Design)" />
+        <select id="task-color">
+          <option value="purple">Purple</option>
+          <option value="blue">Blue</option>
+          <option value="orange">Orange</option>
+          <option value="pink">Pink</option>
+        </select>
+        <select id="task-status">
+          <option value="todo">To Do</option>
+          <option value="progress">In Progress</option>
+          <option value="done">Completed</option>
+        </select>
+        <input type="date" id="task-date" required />
+        <div class="dialog-buttons">
+          <button type="button" id="delete-btn" hidden>Delete</button>
+          <button type="button" id="cancel-btn">Cancel</button>
+          <button type="submit" id="submit-btn">Add</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./index.js" defer></script>
   </body>
 </html>
