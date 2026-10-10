@@ -25,21 +25,17 @@
       </header>
 
       <div class="board-meta">
-        <div class="team-avatars">
-          <img src="https://i.pravatar.cc/80?img=12" alt="Team member" />
-          <img src="https://i.pravatar.cc/80?img=32" alt="Team member" />
-          <img src="https://i.pravatar.cc/80?img=47" alt="Team member" />
-          <span>+3</span>
+        
         </div>
 
         <div class="board-info">
-          <span>▣ 24 Tasks</span>
+          <span id="total_count">0</span>
           <span>◷ Due Sep 30</span>
         </div>
       </div>
 
       <main class="kanban-columns">
-        <section class="kanban-column">
+        <section class="kanban-column" data-status="todo">
           <header class="column-header">
             <div>
               <span class="status-dot gray"></span>
@@ -50,19 +46,19 @@
             <button type="button">＋</button>
           </header>
 
-          <div class="task-list">
+          <div id="list-todo">
             <article class="task-card">
               <div class="task-top">
-                <span class="task-label purple">DESIGN</span>
+                <span class="task-label purple">${task.color}</span>
+                <span class="task-label purple">${task.label}</span>
                 <button type="button">•••</button>
               </div>
 
-              <h3>Create homepage wireframe</h3>
-              <p>Prepare the initial layout and user flow.</p>
+              <h3>${task.title}</h3>
+              <p>${task.description}</p>
 
               <div class="task-footer">
-                <span class="due-date">◷ Sep 18</span>
-                <img src="https://i.pravatar.cc/60?img=12" alt="Assignee" />
+                <span class="due-date">${task.dueDate}</span>
               </div>
             </article>
 
@@ -77,7 +73,6 @@
 
               <div class="task-footer">
                 <span class="due-date">◷ Sep 20</span>
-                <img src="https://i.pravatar.cc/60?img=32" alt="Assignee" />
               </div>
             </article>
           </div>
@@ -85,7 +80,7 @@
           <button class="add-task-button" type="button">＋ Add new task</button>
         </section>
 
-        <section class="kanban-column">
+        <section class="kanban-column" data-status="progress">
           <header class="column-header">
             <div>
               <span class="status-dot orange"></span>
@@ -96,7 +91,7 @@
             <button type="button">＋</button>
           </header>
 
-          <div class="task-list">
+          <div id="list-progress">
             <article class="task-card highlighted">
               <div class="task-top">
                 <span class="task-label orange">DEVELOPMENT</span>
@@ -119,7 +114,6 @@
 
               <div class="task-footer">
                 <span class="due-date">◷ Sep 22</span>
-                <img src="https://i.pravatar.cc/60?img=47" alt="Assignee" />
               </div>
             </article>
 
@@ -134,7 +128,7 @@
 
               <div class="task-footer">
                 <span class="due-date">◷ Sep 24</span>
-                <img src="https://i.pravatar.cc/60?img=14" alt="Assignee" />
+                
               </div>
             </article>
           </div>
@@ -142,7 +136,7 @@
           <button class="add-task-button" type="button">＋ Add new task</button>
         </section>
 
-        <section class="kanban-column">
+        <section class="kanban-column" data-status="done">
           <header class="column-header">
             <div>
               <span class="status-dot green"></span>
@@ -153,7 +147,7 @@
             <button type="button">＋</button>
           </header>
 
-          <div class="task-list">
+          <div id="list-done">
             <article class="task-card completed-card">
               <div class="task-top">
                 <span class="task-label green-label">COMPLETED</span>
@@ -165,7 +159,7 @@
 
               <div class="task-footer">
                 <span class="done-date">✓ Completed</span>
-                <img src="https://i.pravatar.cc/60?img=12" alt="Assignee" />
+                
               </div>
             </article>
 
@@ -180,7 +174,7 @@
 
               <div class="task-footer">
                 <span class="done-date">✓ Completed</span>
-                <img src="https://i.pravatar.cc/60?img=32" alt="Assignee" />
+                
               </div>
             </article>
           </div>
@@ -189,5 +183,6 @@
         </section>
       </main>
     </div>
+    <script src="./index.js"></script>
   </body>
 </html>
