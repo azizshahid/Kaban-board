@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+      Kanban Task Board with HTML &amp; CSS 📋 | Project Management UI
+    </title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="kanban-board">
+      <header class="board-header">
+        <div>
+          <p class="eyebrow">PROJECT WORKSPACE</p>
+          <h1>Website Redesign</h1>
+        </div>
+
+        <div class="board-actions">
+          <button type="button">＋ Add Task</button>
+          <button class="more-button" type="button" aria-label="More options">
+            •••
+          </button>
+        </div>
+      </header>
+
+      <div class="board-meta">
+        <div class="team-avatars">
+          <img src="https://i.pravatar.cc/80?img=12" alt="Team member" />
+          <img src="https://i.pravatar.cc/80?img=32" alt="Team member" />
+          <img src="https://i.pravatar.cc/80?img=47" alt="Team member" />
+          <span>+3</span>
+        </div>
+
+        <div class="board-info">
+          <span>▣ 24 Tasks</span>
+          <span>◷ Due Sep 30</span>
+        </div>
+      </div>
+
+      <main class="kanban-columns">
+        <section class="kanban-column">
+          <header class="column-header">
+            <div>
+              <span class="status-dot gray"></span>
+              <h2>To Do</h2>
+              <span class="task-count">3</span>
+            </div>
+
+            <button type="button">＋</button>
+          </header>
+
+          <div class="task-list">
+            <article class="task-card">
+              <div class="task-top">
+                <span class="task-label purple">DESIGN</span>
+                <button type="button">•••</button>
+              </div>
+
+              <h3>Create homepage wireframe</h3>
+              <p>Prepare the initial layout and user flow.</p>
+
+              <div class="task-footer">
+                <span class="due-date">◷ Sep 18</span>
+                <img src="https://i.pravatar.cc/60?img=12" alt="Assignee" />
+              </div>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <span class="task-label blue">CONTENT</span>
+                <button type="button">•••</button>
+              </div>
+
+              <h3>Write landing page copy</h3>
+              <p>Finalize headline, features and CTA text.</p>
+
+              <div class="task-footer">
+                <span class="due-date">◷ Sep 20</span>
+                <img src="https://i.pravatar.cc/60?img=32" alt="Assignee" />
+              </div>
+            </article>
+          </div>
+
+          <button class="add-task-button" type="button">＋ Add new task</button>
+        </section>
+
+        <section class="kanban-column">
+          <header class="column-header">
+            <div>
+              <span class="status-dot orange"></span>
+              <h2>In Progress</h2>
+              <span class="task-count">2</span>
+            </div>
+
+            <button type="button">＋</button>
+          </header>
+
+          <div class="task-list">
+            <article class="task-card highlighted">
+              <div class="task-top">
+                <span class="task-label orange">DEVELOPMENT</span>
+                <button type="button">•••</button>
+              </div>
+
+              <h3>Build responsive navigation</h3>
+              <p>Make the navigation work across all screen sizes.</p>
+
+              <div class="checklist">
+                <div class="checklist-label">
+                  <span>Checklist</span>
+                  <strong>3/5</strong>
+                </div>
+
+                <div class="checklist-track">
+                  <span></span>
+                </div>
+              </div>
+
+              <div class="task-footer">
+                <span class="due-date">◷ Sep 22</span>
+                <img src="https://i.pravatar.cc/60?img=47" alt="Assignee" />
+              </div>
+            </article>
+
+            <article class="task-card">
+              <div class="task-top">
+                <span class="task-label pink">RESEARCH</span>
+                <button type="button">•••</button>
+              </div>
+
+              <h3>Review competitor websites</h3>
+              <p>Collect design references and useful patterns.</p>
+
+              <div class="task-footer">
+                <span class="due-date">◷ Sep 24</span>
+                <img src="https://i.pravatar.cc/60?img=14" alt="Assignee" />
+              </div>
+            </article>
+          </div>
+
+          <button class="add-task-button" type="button">＋ Add new task</button>
+        </section>
+
+        <section class="kanban-column">
+          <header class="column-header">
+            <div>
+              <span class="status-dot green"></span>
+              <h2>Completed</h2>
+              <span class="task-count">2</span>
+            </div>
+
+            <button type="button">＋</button>
+          </header>
+
+          <div class="task-list">
+            <article class="task-card completed-card">
+              <div class="task-top">
+                <span class="task-label green-label">COMPLETED</span>
+                <button type="button">•••</button>
+              </div>
+
+              <h3>Set up project structure</h3>
+              <p>Organize files, tools and development workflow.</p>
+
+              <div class="task-footer">
+                <span class="done-date">✓ Completed</span>
+                <img src="https://i.pravatar.cc/60?img=12" alt="Assignee" />
+              </div>
+            </article>
+
+            <article class="task-card completed-card">
+              <div class="task-top">
+                <span class="task-label green-label">COMPLETED</span>
+                <button type="button">•••</button>
+              </div>
+
+              <h3>Choose color palette</h3>
+              <p>Finalize the primary and secondary brand colors.</p>
+
+              <div class="task-footer">
+                <span class="done-date">✓ Completed</span>
+                <img src="https://i.pravatar.cc/60?img=32" alt="Assignee" />
+              </div>
+            </article>
+          </div>
+
+          <button class="add-task-button" type="button">＋ Add new task</button>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
