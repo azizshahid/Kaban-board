@@ -1,0 +1,120 @@
+/* Header extras */
+.board-actions { flex-wrap: wrap; justify-content: flex-end; }
+
+.ghost-btn {
+  padding: 11px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+.ghost-btn:hover { background: #eef2ff; color: #4f46e5; }
+
+.reminder-setting {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 10px;
+}
+.reminder-setting select {
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 11px;
+}
+
+/* Overdue dates */
+.due-date.overdue { color: #dc2626; font-weight: 700; }
+
+/* Notes panel */
+.notes-panel {
+  margin-top: 25px;
+  padding: 18px;
+  border: 1px solid #e7ecf3;
+  border-radius: 15px;
+  background: #f8fafc;
+}
+.notes-panel h2 { margin: 0 0 12px; color: #334155; font-size: 13px; }
+
+#note-form { display: grid; gap: 8px; max-width: 520px; }
+#note-form select,
+#note-form textarea,
+#review-form textarea {
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+  resize: vertical;
+}
+#note-form .action-btn { justify-self: start; padding: 8px 14px; }
+
+.notes-list {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.note {
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+.note p { margin: 8px 0 0; color: #475569; font-size: 12px; line-height: 1.5; white-space: pre-wrap; }
+.note-meta { display: flex; align-items: center; gap: 10px; color: #94a3b8; font-size: 9px; }
+.note-tag {
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: #ede9fe;
+  color: #7c3aed;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.note-delete {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+}
+.note-delete:hover { color: #dc2626; }
+
+/* End-of-day review dialog */
+#review-form { display: grid; gap: 10px; }
+#review-form h2 { margin: 0; font-size: 16px; }
+.review-summary { margin: 0; color: #64748b; font-size: 11px; }
+.review-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.review-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+/* Reminder toast */
+.toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  max-width: 320px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #172033;
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.3);
+}
+.toast[hidden] { display: none; }

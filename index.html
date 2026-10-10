@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>My Productivity Board</title>
     <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./panels.css" />
   </head>
   <body>
     <div class="kanban-board">
@@ -16,12 +17,21 @@
 
         <div class="board-actions">
           <button type="button" id="add-task-btn">＋ Add Task</button>
+          <button type="button" id="review-btn" class="ghost-btn">End-of-day review</button>
+          <label class="reminder-setting">
+            Remind every
+            <select id="reminder-interval">
+              <option value="15">15 min</option>
+              <option value="30">30 min</option>
+              <option value="60">60 min</option>
+              <option value="0">Off</option>
+            </select>
+          </label>
         </div>
       </header>
 
       <div class="board-meta">
         <span id="today-label" class="board-info"></span>
-
         <div class="board-info">
           <span>▣ <span id="total-count">0</span> Tasks</span>
         </div>
@@ -35,11 +45,8 @@
               <h2>To Do</h2>
               <span class="task-count" id="count-todo">0</span>
             </div>
-            <button type="button" class="column-add" data-status="todo">
-              ＋
-            </button>
+            <button type="button" class="column-add" data-status="todo" aria-label="Add to To Do">＋</button>
           </header>
-
           <div class="task-list" id="list-todo"></div>
         </section>
 
@@ -50,11 +57,8 @@
               <h2>In Progress</h2>
               <span class="task-count" id="count-progress">0</span>
             </div>
-            <button type="button" class="column-add" data-status="progress">
-              ＋
-            </button>
+            <button type="button" class="column-add" data-status="progress" aria-label="Add to In Progress">＋</button>
           </header>
-
           <div class="task-list" id="list-progress"></div>
         </section>
 
@@ -65,29 +69,42 @@
               <h2>Completed</h2>
               <span class="task-count" id="count-done">0</span>
             </div>
-            <button type="button" class="column-add" data-status="done">
-              ＋
-            </button>
+            <button type="button" class="column-add" data-status="done" aria-label="Add to Completed">＋</button>
           </header>
-
           <div class="task-list" id="list-done"></div>
         </section>
       </main>
+
+      <section class="notes-panel" aria-labelledby="notes-title">
+        <h2 id="notes-title">Notes</h2>
+        <form id="note-form">
+          <select id="note-category" aria-label="Note category">
+            <option value="habit">Habit</option>
+            <option value="reflection">Reflection</option>
+            <option value="time management">Time management</option>
+            <option value="critique">Critique</option>
+            <option value="other">Other</option>
+          </select>
+          <textarea id="note-text" rows="3" placeholder="Write a note..."></textarea>
+          <button type="submit" class="action-btn">Add note</button>
+        </form>
+        <ul id="notes-list" class="notes-list"></ul>
+      </section>
     </div>
 
     <dialog id="task-dialog">
       <form id="task-form">
-        <h2>New Task</h2>
+        <h2 id="dialog-title">New Task</h2>
         <input type="text" id="task-title" placeholder="Title" required />
         <input type="text" id="task-desc" placeholder="Description" />
         <input type="text" id="task-label" placeholder="Label (e.g. Design)" />
-        <select id="task-color">
+        <select id="task-color" aria-label="Label color">
           <option value="purple">Purple</option>
           <option value="blue">Blue</option>
           <option value="orange">Orange</option>
           <option value="pink">Pink</option>
         </select>
-        <select id="task-status">
+        <select id="task-status" aria-label="Status">
           <option value="todo">To Do</option>
           <option value="progress">In Progress</option>
           <option value="done">Completed</option>
@@ -101,6 +118,21 @@
       </form>
     </dialog>
 
-    <script src="./index.js" defer></script>
+    <dialog id="review-dialog">
+      <form id="review-form">
+        <h2>End-of-day review</h2>
+        <p id="review-summary" class="review-summary"></p>
+        <ul id="review-list" class="review-list"></ul>
+        <textarea id="review-text" rows="4" placeholder="What went well? What would you change tomorrow?"></textarea>
+        <div class="dialog-buttons">
+          <button type="button" id="review-close" class="ghost-btn">Close</button>
+          <button type="submit">Save reflection</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" hidden></div>
+
+    <script type="module" src="./index.js"></script>
   </body>
 </html>
