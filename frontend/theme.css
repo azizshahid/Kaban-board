@@ -1,0 +1,42 @@
+/* JS sets <html data-theme="light|dark">, resolving "system" itself. */
+[data-theme="dark"] { color-scheme: dark; }
+
+[data-theme="dark"] body { background: #0b1120; color: #e2e8f0; }
+[data-theme="dark"] .kanban-board { background: #111827; border-color: #1f2937; box-shadow: none; }
+[data-theme="dark"] .board-meta { border-bottom-color: #1f2937; }
+
+[data-theme="dark"] .kanban-column,
+[data-theme="dark"] .notes-panel { background: #0f172a; border-color: #1f2937; }
+
+[data-theme="dark"] .task-card,
+[data-theme="dark"] .note,
+[data-theme="dark"] .review-list li { background: #1e293b; border-color: #334155; }
+
+[data-theme="dark"] .column-header h2,
+[data-theme="dark"] .task-card h3,
+[data-theme="dark"] .notes-panel h2 { color: #e2e8f0; }
+
+[data-theme="dark"] .task-card > p,
+[data-theme="dark"] .note p,
+[data-theme="dark"] .review-summary { color: #94a3b8; }
+
+[data-theme="dark"] .task-count,
+[data-theme="dark"] .column-header > button { background: #1e293b; color: #94a3b8; }
+
+[data-theme="dark"] dialog { background: #111827; color: #e2e8f0; border-color: #334155; }
+
+[data-theme="dark"] #task-form input,
+[data-theme="dark"] #task-form select,
+[data-theme="dark"] #note-form select,
+[data-theme="dark"] #note-form textarea,
+[data-theme="dark"] #review-form textarea { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+
+[data-theme="dark"] .ghost-btn,
+[data-theme="dark"] .reminder-setting select { background: #1e293b; border-color: #334155; color: #cbd5e1; }
+[data-theme="dark"] .reminder-setting { color: #94a3b8; }
+
+[data-theme="dark"] #cancel-btn { background: #334155; color: #e2e8f0; }
+[data-theme="dark"] .action-btn { background: #312e81; color: #c7d2fe; }
+[data-theme="dark"] .action-btn.secondary { background: #334155; color: #cbd5e1; }
+
+[data-theme="dark"] .toast { background: #e2e8f0; color: #0f172a; }

@@ -3,17 +3,17 @@ import { load, save } from "./storage.js";
 /* ---------- Data ---------- */
 
 const DEFAULT_TASKS = [
-  { id: 1, title: "Create homepage wireframe", description: "Designing the wireframe", label: "Design", color: "purple", status: "todo", dueDate: "2026-10-12" },
-  { id: 2, title: "Market research for Yarnanimal.in", description: "Market research for Yarnanimal.in", label: "Market Research", color: "blue", status: "todo", dueDate: "2026-10-13" },
-  { id: 3, title: "Talk to Yarnanimal developer", description: "Talk to the developer", label: "Communication", color: "pink", status: "todo", dueDate: "2026-10-11" },
-  { id: 4, title: "Raise complaint with AWS", description: "Raise complaint with AWS", label: "Tools", color: "purple", status: "done", dueDate: "2026-10-09" },
-  { id: 5, title: "Ask for social media credentials", description: "Then create the strategy", label: "Strategy", color: "orange", status: "progress", dueDate: "2026-10-15" },
+  { id: 1, title: "Create homepage wireframe", description: "Designing the wireframe", label: "Design", status: "todo", dueDate: "2026-10-12" },
+  { id: 2, title: "Market research for Yarnanimal.in", description: "Market research for Yarnanimal.in", label: "Market Research", status: "todo", dueDate: "2026-10-13" },
+  { id: 3, title: "Talk to Yarnanimal developer", description: "Talk to the developer", label: "Communication", status: "todo", dueDate: "2026-10-11" },
+  { id: 4, title: "Raise complaint with AWS", description: "Raise complaint with AWS", label: "Tools", status: "done", dueDate: "2026-10-09" },
+  { id: 5, title: "Ask for social media credentials", description: "Then create the strategy", label: "Strategy", status: "progress", dueDate: "2026-10-15" },
 ];
 
 const state = {
   tasks: load("tasks", DEFAULT_TASKS),
   notes: load("notes", []),
-  settings: load("settings", { reminderMinutes: 30 }),
+  settings: { reminderMinutes: 30, theme: "system", ...load("settings", {}) },
   editingId: null,
 };
 
@@ -30,6 +30,7 @@ const els = {
   taskDialog: $("task-dialog"),
   taskForm: $("task-form"),
   interval: $("reminder-interval"),
+  theme: $("theme-select"),
   toast: $("toast"),
   notesList: $("notes-list"),
   noteForm: $("note-form"),
@@ -63,6 +64,9 @@ function persistTasks() {
 
 /* ---------- Task cards ---------- */
 
+// Label color is decided by the column, not chosen per task
+const LABEL_CLASS = { todo: "purple", progress: "orange", done: "green-label" };
+
 const ACTION_BUTTONS = {
   todo: `<button type="button" class="action-btn" data-action="start">▶ Start</button>`,
   progress: `
@@ -81,15 +85,14 @@ const ACTIONS = {
 function createCard(task) {
   const isDone = task.status === "done";
   const isOverdue = !isDone && task.dueDate && task.dueDate < todayISO();
-  const labelClass = isDone ? "green-label" : task.color;
-  const footer = isDone
+    const footer = isDone
     ? `<span class="done-date">✓ Completed</span>`
     : `<span class="due-date ${isOverdue ? "overdue" : ""}">◷ ${formatDate(task.dueDate)}</span>`;
 
   return `
     <article class="task-card ${isDone ? "completed-card" : ""}" data-id="${task.id}">
       <div class="task-top">
-        <span class="task-label ${labelClass}">${escapeHtml(task.label)}</span>
+        <span class="task-label ${LABEL_CLASS[task.status]}">${escapeHtml(task.label)}</span>
         <button type="button" class="menu-btn" aria-label="Edit task">•••</button>
       </div>
       <h3>${escapeHtml(task.title)}</h3>
@@ -131,7 +134,6 @@ function openEditDialog(task) {
   $("task-title").value = task.title;
   $("task-desc").value = task.description;
   $("task-label").value = task.label;
-  $("task-color").value = task.color;
   $("task-status").value = task.status;
   $("task-date").value = task.dueDate;
   els.taskDialog.showModal();
@@ -142,7 +144,6 @@ function readTaskForm() {
     title: $("task-title").value.trim(),
     description: $("task-desc").value.trim(),
     label: $("task-label").value.trim() || "General",
-    color: $("task-color").value,
     status: $("task-status").value,
     dueDate: $("task-date").value,
   };
@@ -326,7 +327,26 @@ els.reviewForm.addEventListener("submit", (event) => {
 
 $("review-close").addEventListener("click", () => els.reviewDialog.close());
 
+/* ---------- Theme ---------- */
+
+const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+function applyTheme() {
+  const useDark = state.settings.theme === "dark" || (state.settings.theme === "system" && darkQuery.matches);
+  document.documentElement.dataset.theme = useDark ? "dark" : "light";
+}
+
+els.theme.value = state.settings.theme;
+els.theme.addEventListener("change", () => {
+  state.settings.theme = els.theme.value;
+  save("settings", state.settings);
+  applyTheme();
+});
+darkQuery.addEventListener("change", applyTheme);
+
 /* ---------- Start ---------- */
+
+applyTheme();
 
 els.today.textContent = new Date().toLocaleDateString("en-GB", {
   weekday: "long", day: "numeric", month: "long", year: "numeric",

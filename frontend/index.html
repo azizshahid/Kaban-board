@@ -6,6 +6,7 @@
     <title>My Productivity Board</title>
     <link rel="stylesheet" href="./style.css" />
     <link rel="stylesheet" href="./panels.css" />
+    <link rel="stylesheet" href="./theme.css" />
   </head>
   <body>
     <div class="kanban-board">
@@ -25,6 +26,14 @@
               <option value="30">30 min</option>
               <option value="60">60 min</option>
               <option value="0">Off</option>
+            </select>
+          </label>
+          <label class="reminder-setting">
+            Theme
+            <select id="theme-select">
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
             </select>
           </label>
         </div>
@@ -98,12 +107,6 @@
         <input type="text" id="task-title" placeholder="Title" required />
         <input type="text" id="task-desc" placeholder="Description" />
         <input type="text" id="task-label" placeholder="Label (e.g. Design)" />
-        <select id="task-color" aria-label="Label color">
-          <option value="purple">Purple</option>
-          <option value="blue">Blue</option>
-          <option value="orange">Orange</option>
-          <option value="pink">Pink</option>
-        </select>
         <select id="task-status" aria-label="Status">
           <option value="todo">To Do</option>
           <option value="progress">In Progress</option>
