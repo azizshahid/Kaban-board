@@ -1,18 +1,10 @@
-import { load, save } from "./storage.js";
+import { api, load, save } from "./storage.js";
 
 /* ---------- Data ---------- */
 
-const DEFAULT_TASKS = [
-  { id: 1, title: "Create homepage wireframe", description: "Designing the wireframe", label: "Design", status: "todo", dueDate: "2026-10-12" },
-  { id: 2, title: "Market research for Yarnanimal.in", description: "Market research for Yarnanimal.in", label: "Market Research", status: "todo", dueDate: "2026-10-13" },
-  { id: 3, title: "Talk to Yarnanimal developer", description: "Talk to the developer", label: "Communication", status: "todo", dueDate: "2026-10-11" },
-  { id: 4, title: "Raise complaint with AWS", description: "Raise complaint with AWS", label: "Tools", status: "done", dueDate: "2026-10-09" },
-  { id: 5, title: "Ask for social media credentials", description: "Then create the strategy", label: "Strategy", status: "progress", dueDate: "2026-10-15" },
-];
-
 const state = {
-  tasks: load("tasks", DEFAULT_TASKS),
-  notes: load("notes", []),
+  tasks: [],
+  notes: [],
   settings: { reminderMinutes: 30, theme: "system", ...load("settings", {}) },
   editingId: null,
 };
@@ -57,8 +49,15 @@ const formatDate = (iso) =>
 
 const findTask = (id) => state.tasks.find((task) => task.id === id);
 
+// Optimistic UI: the board updates instantly, the server is updated in the background.
+function sync(request) {
+  request.catch((error) => {
+    console.error(error);
+    notify("Could not reach the server. Changes may not be saved.");
+  });
+}
+
 function persistTasks() {
-  save("tasks", state.tasks);
   render();
 }
 
@@ -158,6 +157,7 @@ els.taskForm.addEventListener("submit", (event) => {
   if (task.status === "progress" && !task.startedAt) task.startedAt = Date.now();
   if (task.status === "done" && !task.completedAt) task.completedAt = Date.now();
   if (state.editingId === null) state.tasks.push(task);
+  sync(state.editingId === null ? api.createTask(task) : api.updateTask(task.id, task));
 
   persistTasks();
   els.taskDialog.close();
@@ -165,6 +165,7 @@ els.taskForm.addEventListener("submit", (event) => {
 
 $("delete-btn").addEventListener("click", () => {
   if (!confirm("Delete this task?")) return;
+  sync(api.deleteTask(state.editingId));
   state.tasks = state.tasks.filter((task) => task.id !== state.editingId);
   persistTasks();
   els.taskDialog.close();
@@ -192,6 +193,7 @@ els.board.addEventListener("click", (event) => {
   if (!button) return;
   if (button.dataset.action === "start") requestNotificationPermission();
   ACTIONS[button.dataset.action](task);
+  sync(api.updateTask(task.id, task));
   persistTasks();
 });
 
@@ -217,7 +219,6 @@ function checkReminders() {
   if (!minutes) return;
 
   const now = Date.now();
-  let changed = false;
 
   state.tasks
     .filter((task) => task.status === "progress" && task.startedAt)
@@ -227,11 +228,10 @@ function checkReminders() {
         const elapsed = Math.round((now - task.startedAt) / 60000);
         notify(`"${task.title}" has been in progress for ${elapsed} min. Still on it?`);
         task.lastReminderAt = now;
-        changed = true;
+        sync(api.updateTask(task.id, { lastReminderAt: now }));
       }
     });
 
-  if (changed) save("tasks", state.tasks);
 }
 
 els.interval.value = String(state.settings.reminderMinutes);
@@ -260,8 +260,9 @@ function renderNotes() {
 }
 
 function addNote(category, text) {
-  state.notes.unshift({ id: Date.now(), category, text, date: todayISO() });
-  save("notes", state.notes);
+  const note = { id: Date.now(), category, text, date: todayISO() };
+  state.notes.unshift(note);
+  sync(api.createNote(note));
   renderNotes();
 }
 
@@ -278,7 +279,7 @@ els.notesList.addEventListener("click", (event) => {
   if (!deleteBtn) return;
   const id = Number(deleteBtn.closest(".note").dataset.id);
   state.notes = state.notes.filter((note) => note.id !== id);
-  save("notes", state.notes);
+  sync(api.deleteNote(id));
   renderNotes();
 });
 
@@ -312,7 +313,9 @@ $("review-btn").addEventListener("click", () => {
 els.reviewList.addEventListener("click", (event) => {
   const moveBtn = event.target.closest("[data-move]");
   if (!moveBtn) return;
-  findTask(Number(moveBtn.dataset.move)).dueDate = tomorrowISO();
+  const task = findTask(Number(moveBtn.dataset.move));
+  task.dueDate = tomorrowISO();
+  sync(api.updateTask(task.id, { dueDate: task.dueDate }));
   persistTasks();
   renderReview();
 });
@@ -351,6 +354,16 @@ applyTheme();
 els.today.textContent = new Date().toLocaleDateString("en-GB", {
   weekday: "long", day: "numeric", month: "long", year: "numeric",
 });
-render();
-renderNotes();
-checkReminders();
+async function init() {
+  try {
+    [state.tasks, state.notes] = await Promise.all([api.listTasks(), api.listNotes()]);
+  } catch (error) {
+    console.error(error);
+    notify("Could not load data. Is the Flask server running?");
+  }
+  render();
+  renderNotes();
+  checkReminders();
+}
+
+init();
