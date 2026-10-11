@@ -1,0 +1,50 @@
+# Productivity Board
+
+A personal Kanban-style productivity tracker for planning days, weeks and months.
+Built with vanilla JavaScript on the front end and Flask + SQLite on the back end.
+
+![Board view](127.0.0.1_5000_.png.png)
+
+## Features
+
+- Kanban board with To Do, In Progress and Completed columns
+- Add, edit, delete and move tasks (colors follow the column)
+- Reminders at a fixed interval once a task is started
+- End-of-day review: see what is still open, move tasks to tomorrow, write a reflection
+- Notes panel with categories (habit, reflection, time management, critique, other)
+- Day, week and month planner views based on due dates
+- Light, dark and system themes
+
+## Tech stack
+
+- **Front end:** HTML, CSS, vanilla JavaScript (ES modules)
+- **Back end:** Python, Flask, SQLite
+- **API:** REST endpoints for tasks (`/api/tasks`) and notes (`/api/notes`)
+
+## Run it locally
+
+```
+git clone https://github.com/azizshahid/Kaban-board.git
+cd Kaban-board
+python -m venv venv
+venv\Scripts\activate        # Windows (macOS/Linux: source venv/bin/activate)
+pip install flask
+python backend/app.py
+```
+
+Then open http://127.0.0.1:5000/
+
+The database (`backend/board.db`) is created automatically on first run and is
+not committed to Git.
+
+## Project structure
+
+```
+frontend/   index.html, index.js, storage.js, style.css, panels.css, planner.css, theme.css
+backend/    app.py
+```
+
+## Notes
+
+- Reminders only fire while the page is open in a browser tab.
+- Theme and reminder interval are stored per device in `localStorage`; tasks and notes live in SQLite.
