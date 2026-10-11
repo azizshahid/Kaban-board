@@ -6,6 +6,7 @@
     <title>My Productivity Board</title>
     <link rel="stylesheet" href="./style.css" />
     <link rel="stylesheet" href="./panels.css" />
+    <link rel="stylesheet" href="./planner.css" />
     <link rel="stylesheet" href="./theme.css" />
   </head>
   <body>
@@ -46,6 +47,13 @@
         </div>
       </div>
 
+      <nav class="view-switcher" aria-label="Choose view">
+        <button type="button" class="view-btn active" data-view="board">Board</button>
+        <button type="button" class="view-btn" data-view="day">Day</button>
+        <button type="button" class="view-btn" data-view="week">Week</button>
+        <button type="button" class="view-btn" data-view="month">Month</button>
+      </nav>
+
       <main class="kanban-columns">
         <section class="kanban-column" data-status="todo">
           <header class="column-header">
@@ -83,6 +91,17 @@
           <div class="task-list" id="list-done"></div>
         </section>
       </main>
+
+      <section id="planner" class="planner" hidden>
+        <div class="planner-nav">
+          <button type="button" id="planner-prev" class="ghost-btn" aria-label="Previous">‹</button>
+          <h2 id="planner-title"></h2>
+          <button type="button" id="planner-next" class="ghost-btn" aria-label="Next">›</button>
+          <button type="button" id="planner-today" class="ghost-btn">Today</button>
+        </div>
+        <p class="planner-hint">Click a task to edit it, or an empty spot in a day to add one for that date.</p>
+        <div id="planner-grid" class="planner-grid"></div>
+      </section>
 
       <section class="notes-panel" aria-labelledby="notes-title">
         <h2 id="notes-title">Notes</h2>

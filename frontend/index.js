@@ -7,6 +7,8 @@ const state = {
   notes: [],
   settings: { reminderMinutes: 30, theme: "system", ...load("settings", {}) },
   editingId: null,
+  view: "board",
+  cursor: new Date(),
 };
 
 /* ---------- DOM references ---------- */
@@ -23,6 +25,9 @@ const els = {
   taskForm: $("task-form"),
   interval: $("reminder-interval"),
   theme: $("theme-select"),
+  planner: $("planner"),
+  plannerGrid: $("planner-grid"),
+  plannerTitle: $("planner-title"),
   toast: $("toast"),
   notesList: $("notes-list"),
   noteForm: $("note-form"),
@@ -110,18 +115,19 @@ function render() {
     els.counts[status].textContent = cards[status].length;
   });
   els.total.textContent = state.tasks.length;
+  if (state.view !== "board") renderPlanner();
 }
 
 /* ---------- Add / edit / delete ---------- */
 
-function openAddDialog(status) {
+function openAddDialog(status, date = todayISO()) {
   state.editingId = null;
   els.taskForm.reset();
   $("dialog-title").textContent = "New Task";
   $("submit-btn").textContent = "Add";
   $("delete-btn").hidden = true;
   $("task-status").value = status;
-  $("task-date").value = todayISO();
+  $("task-date").value = date;
   els.taskDialog.showModal();
 }
 
@@ -329,6 +335,96 @@ els.reviewForm.addEventListener("submit", (event) => {
 });
 
 $("review-close").addEventListener("click", () => els.reviewDialog.close());
+
+/* ---------- Planner (day / week / month) ---------- */
+
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const addDays = (date, days) => {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+};
+const startOfWeek = (date) => addDays(date, -((date.getDay() + 6) % 7)); // weeks start on Monday
+const shortDate = (date) => date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+
+function plannerRange() {
+  const cursor = state.cursor;
+  if (state.view === "day") {
+    const title = cursor.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    return { start: cursor, count: 1, title };
+  }
+  if (state.view === "week") {
+    const start = startOfWeek(cursor);
+    const end = addDays(start, 6);
+    return { start, count: 7, title: `${shortDate(start)} – ${shortDate(end)} ${end.getFullYear()}` };
+  }
+  const firstOfMonth = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+  const title = cursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  return { start: startOfWeek(firstOfMonth), count: 42, title };
+}
+
+function renderPlanner() {
+  const { start, count, title } = plannerRange();
+  const today = todayISO();
+  const isMonth = state.view === "month";
+  const labels = isMonth ? WEEKDAYS.map((day) => `<div class="weekday-label">${day}</div>`).join("") : "";
+
+  const cells = Array.from({ length: count }, (_, i) => {
+    const date = addDays(start, i);
+    const iso = toISO(date);
+    const chips = state.tasks
+      .filter((task) => task.dueDate === iso)
+      .map((task) => `<button type="button" class="chip ${task.status}" data-id="${task.id}">${escapeHtml(task.title)}</button>`)
+      .join("");
+    const outside = isMonth && date.getMonth() !== state.cursor.getMonth();
+    const head = isMonth ? date.getDate() : date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
+    return `<div class="day-cell ${iso === today ? "today" : ""} ${outside ? "outside" : ""}" data-date="${iso}">
+      <div class="day-head">${head}</div>${chips}</div>`;
+  }).join("");
+
+  els.plannerTitle.textContent = title;
+  els.plannerGrid.className = `planner-grid ${state.view}`;
+  els.plannerGrid.innerHTML = labels + cells;
+}
+
+function setView(view) {
+  state.view = view;
+  document.querySelectorAll(".view-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.view === view));
+  els.board.hidden = view !== "board";
+  els.planner.hidden = view === "board";
+  if (view !== "board") renderPlanner();
+}
+
+function movePlanner(direction) {
+  const cursor = state.cursor;
+  if (state.view === "month") {
+    state.cursor = new Date(cursor.getFullYear(), cursor.getMonth() + direction, 1);
+  } else {
+    state.cursor = addDays(cursor, direction * (state.view === "week" ? 7 : 1));
+  }
+  renderPlanner();
+}
+
+document.querySelector(".view-switcher").addEventListener("click", (event) => {
+  const button = event.target.closest(".view-btn");
+  if (button) setView(button.dataset.view);
+});
+$("planner-prev").addEventListener("click", () => movePlanner(-1));
+$("planner-next").addEventListener("click", () => movePlanner(1));
+$("planner-today").addEventListener("click", () => {
+  state.cursor = new Date();
+  renderPlanner();
+});
+
+els.plannerGrid.addEventListener("click", (event) => {
+  const chip = event.target.closest(".chip");
+  if (chip) {
+    openEditDialog(findTask(Number(chip.dataset.id)));
+    return;
+  }
+  const cell = event.target.closest(".day-cell");
+  if (cell) openAddDialog("todo", cell.dataset.date);
+});
 
 /* ---------- Theme ---------- */
 

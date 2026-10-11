@@ -1,0 +1,64 @@
+/* View switcher */
+.view-switcher { display: flex; gap: 6px; margin-top: 20px; }
+.view-btn {
+  padding: 8px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+.view-btn.active { border-color: #6366f1; background: #6366f1; color: #ffffff; }
+
+/* `hidden` must win over the display values set elsewhere */
+.kanban-columns[hidden],
+.planner[hidden] { display: none; }
+
+/* Planner */
+.planner { margin-top: 20px; }
+.planner-nav { display: flex; align-items: center; gap: 10px; }
+.planner-nav h2 { flex: 1; margin: 0; font-size: 15px; text-align: center; }
+.planner-nav .ghost-btn { padding: 8px 14px; }
+.planner-hint { margin: 10px 0 14px; color: #94a3b8; font-size: 10px; }
+
+.planner-grid { display: grid; gap: 8px; overflow-x: auto; }
+.planner-grid.day { grid-template-columns: 1fr; }
+.planner-grid.week,
+.planner-grid.month { grid-template-columns: repeat(7, minmax(110px, 1fr)); }
+
+.weekday-label { padding: 4px; color: #94a3b8; font-size: 10px; font-weight: 700; text-align: center; }
+
+.day-cell {
+  min-height: 90px;
+  padding: 8px;
+  border: 1px solid #e7ecf3;
+  border-radius: 10px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+.planner-grid.day .day-cell { min-height: 220px; }
+.planner-grid.week .day-cell { min-height: 200px; }
+.day-cell:hover { border-color: #c7d2fe; }
+.day-cell.today { border-color: #6366f1; box-shadow: inset 0 0 0 1px #6366f1; }
+.day-cell.outside { opacity: 0.45; }
+.day-head { color: #64748b; font-size: 10px; font-weight: 700; }
+
+.chip {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 5px 7px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 6px;
+  font-size: 10px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chip.todo { background: #ede9fe; color: #7c3aed; }
+.chip.progress { background: #ffedd5; color: #ea580c; }
+.chip.done { background: #dcfce7; color: #16a34a; text-decoration: line-through; }
