@@ -47,6 +47,8 @@
         </div>
       </div>
 
+      <div class="workspace">
+      <div class="workspace-main">
       <nav class="view-switcher" aria-label="Choose view">
         <button type="button" class="view-btn active" data-view="board">Board</button>
         <button type="button" class="view-btn" data-view="day">Day</button>
@@ -103,8 +105,14 @@
         <div id="planner-grid" class="planner-grid"></div>
       </section>
 
-      <section class="notes-panel" aria-labelledby="notes-title">
+      </div>
+
+      <aside class="notes-panel" aria-labelledby="notes-title">
         <h2 id="notes-title">Notes</h2>
+        <div id="note-filter" class="note-filter" hidden>
+          <span></span>
+          <button type="button" id="note-filter-clear">Show all ✕</button>
+        </div>
         <form id="note-form">
           <select id="note-category" aria-label="Note category">
             <option value="habit">Habit</option>
@@ -113,11 +121,13 @@
             <option value="critique">Critique</option>
             <option value="other">Other</option>
           </select>
+          <select id="note-task" aria-label="Attach to task"></select>
           <textarea id="note-text" rows="3" placeholder="Write a note..."></textarea>
           <button type="submit" class="action-btn">Add note</button>
         </form>
         <ul id="notes-list" class="notes-list"></ul>
-      </section>
+      </aside>
+      </div>
     </div>
 
     <dialog id="task-dialog">
@@ -132,6 +142,10 @@
           <option value="done">Completed</option>
         </select>
         <input type="date" id="task-date" required />
+        <label class="field-label">
+          Deadline time (optional)
+          <input type="time" id="task-time" />
+        </label>
         <div class="dialog-buttons">
           <button type="button" id="delete-btn" hidden>Delete</button>
           <button type="button" id="cancel-btn">Cancel</button>

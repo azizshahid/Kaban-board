@@ -50,3 +50,9 @@
 [data-theme="dark"] .chip.todo { background: #2e1065; color: #c4b5fd; }
 [data-theme="dark"] .chip.progress { background: #431407; color: #fdba74; }
 [data-theme="dark"] .chip.done { background: #052e16; color: #86efac; }
+
+/* Notes sidebar and deadline field */
+[data-theme="dark"] .field-label { color: #94a3b8; }
+[data-theme="dark"] .note-btn { background: #422006; color: #fde68a; }
+[data-theme="dark"] .note-filter,
+[data-theme="dark"] .note-task { background: #1e1b4b; color: #c7d2fe; }

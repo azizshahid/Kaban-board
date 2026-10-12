@@ -7,6 +7,7 @@ const state = {
   notes: [],
   settings: { reminderMinutes: 30, theme: "system", ...load("settings", {}) },
   editingId: null,
+  noteFilter: null,
   view: "board",
   cursor: new Date(),
 };
@@ -25,6 +26,8 @@ const els = {
   taskForm: $("task-form"),
   interval: $("reminder-interval"),
   theme: $("theme-select"),
+  noteTask: $("note-task"),
+  noteFilter: $("note-filter"),
   planner: $("planner"),
   plannerGrid: $("planner-grid"),
   plannerTitle: $("planner-title"),
@@ -53,6 +56,17 @@ const formatDate = (iso) =>
   iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "No date";
 
 const findTask = (id) => state.tasks.find((task) => task.id === id);
+
+/* A task may have a date and an optional deadline time */
+const deadlineOf = (task) => (task.dueDate && task.dueTime ? new Date(`${task.dueDate}T${task.dueTime}`) : null);
+const formatDeadline = (task) =>
+  task.dueTime ? `${formatDate(task.dueDate)} · ${task.dueTime}` : formatDate(task.dueDate);
+
+function isPastDeadline(task) {
+  if (!task.dueDate) return false;
+  const deadline = deadlineOf(task);
+  return deadline ? deadline < new Date() : task.dueDate < todayISO();
+}
 
 // Optimistic UI: the board updates instantly, the server is updated in the background.
 function sync(request) {
@@ -88,10 +102,11 @@ const ACTIONS = {
 
 function createCard(task) {
   const isDone = task.status === "done";
-  const isOverdue = !isDone && task.dueDate && task.dueDate < todayISO();
+  const isOverdue = !isDone && isPastDeadline(task);
+  const noteCount = state.notes.filter((note) => note.taskId === task.id).length;
     const footer = isDone
     ? `<span class="done-date">✓ Completed</span>`
-    : `<span class="due-date ${isOverdue ? "overdue" : ""}">◷ ${formatDate(task.dueDate)}</span>`;
+    : `<span class="due-date ${isOverdue ? "overdue" : ""}">◷ ${formatDeadline(task)}</span>`;
 
   return `
     <article class="task-card ${isDone ? "completed-card" : ""}" data-id="${task.id}">
@@ -102,7 +117,7 @@ function createCard(task) {
       <h3>${escapeHtml(task.title)}</h3>
       <p>${escapeHtml(task.description)}</p>
       <div class="task-footer">${footer}</div>
-      <div class="card-actions">${ACTION_BUTTONS[task.status]}</div>
+      <div class="card-actions">${ACTION_BUTTONS[task.status]}<button type="button" class="note-btn" title="Notes for this task">📝${noteCount ? ` ${noteCount}` : ""}</button></div>
     </article>`;
 }
 
@@ -115,6 +130,7 @@ function render() {
     els.counts[status].textContent = cards[status].length;
   });
   els.total.textContent = state.tasks.length;
+  renderNotes();
   if (state.view !== "board") renderPlanner();
 }
 
@@ -128,6 +144,7 @@ function openAddDialog(status, date = todayISO()) {
   $("delete-btn").hidden = true;
   $("task-status").value = status;
   $("task-date").value = date;
+  $("task-time").value = "";
   els.taskDialog.showModal();
 }
 
@@ -141,6 +158,7 @@ function openEditDialog(task) {
   $("task-label").value = task.label;
   $("task-status").value = task.status;
   $("task-date").value = task.dueDate;
+  $("task-time").value = task.dueTime || "";
   els.taskDialog.showModal();
 }
 
@@ -151,6 +169,7 @@ function readTaskForm() {
     label: $("task-label").value.trim() || "General",
     status: $("task-status").value,
     dueDate: $("task-date").value,
+    dueTime: $("task-time").value || null,
   };
 }
 
@@ -159,6 +178,7 @@ els.taskForm.addEventListener("submit", (event) => {
   const values = readTaskForm();
   const task = state.editingId === null ? { id: Date.now() } : findTask(state.editingId);
 
+  if (task.dueDate !== values.dueDate || task.dueTime !== values.dueTime) task.deadlineStage = 0;
   Object.assign(task, values);
   if (task.status === "progress" && !task.startedAt) task.startedAt = Date.now();
   if (task.status === "done" && !task.completedAt) task.completedAt = Date.now();
@@ -192,6 +212,11 @@ els.board.addEventListener("click", (event) => {
 
   if (event.target.closest(".menu-btn")) {
     openEditDialog(task);
+    return;
+  }
+
+  if (event.target.closest(".note-btn")) {
+    focusNotesFor(task.id);
     return;
   }
 
@@ -240,19 +265,66 @@ function checkReminders() {
 
 }
 
+/* Deadline alerts: once 15 minutes before, once when the time has passed */
+function checkDeadlines() {
+  const now = Date.now();
+
+  state.tasks
+    .filter((task) => task.status !== "done" && deadlineOf(task))
+    .forEach((task) => {
+      const minutesLeft = (deadlineOf(task) - now) / 60000;
+      const stage = task.deadlineStage || 0;
+
+      if (minutesLeft <= 0 && stage < 2) {
+        notify(`"${task.title}" is past its deadline (${task.dueTime}).`);
+        task.deadlineStage = 2;
+      } else if (minutesLeft > 0 && minutesLeft <= 15 && stage < 1) {
+        notify(`"${task.title}" is due in ${Math.ceil(minutesLeft)} min (${task.dueTime}).`);
+        task.deadlineStage = 1;
+      } else {
+        return;
+      }
+      sync(api.updateTask(task.id, { deadlineStage: task.deadlineStage }));
+    });
+}
+
 els.interval.value = String(state.settings.reminderMinutes);
 els.interval.addEventListener("change", () => {
   state.settings.reminderMinutes = Number(els.interval.value);
   save("settings", state.settings);
 });
-setInterval(checkReminders, 30000);
+setInterval(() => {
+  checkReminders();
+  checkDeadlines();
+}, 30000);
 
 /* ---------- Notes ---------- */
 
+function renderNoteTaskOptions() {
+  const current = els.noteTask.value;
+  els.noteTask.innerHTML =
+    `<option value="">Attach to task: none</option>` +
+    state.tasks.map((task) => `<option value="${task.id}">${escapeHtml(task.title)}</option>`).join("");
+  els.noteTask.value = current;
+}
+
 function renderNotes() {
-  els.notesList.innerHTML = state.notes
-    .map(
-      (note) => `
+  const filterTask = findTask(state.noteFilter);
+  if (!filterTask) state.noteFilter = null;
+  const visible = filterTask ? state.notes.filter((note) => note.taskId === filterTask.id) : state.notes;
+
+  els.noteFilter.hidden = !filterTask;
+  els.noteFilter.firstElementChild.textContent = filterTask ? `Notes for: ${filterTask.title}` : "";
+  renderNoteTaskOptions();
+
+  els.notesList.innerHTML =
+    visible
+      .map((note) => {
+        const task = findTask(note.taskId);
+        const link = task
+          ? `<button type="button" class="note-task" data-task="${task.id}">↗ ${escapeHtml(task.title)}</button>`
+          : "";
+        return `
       <li class="note" data-id="${note.id}">
         <div class="note-meta">
           <span class="note-tag">${escapeHtml(note.category)}</span>
@@ -260,33 +332,53 @@ function renderNotes() {
           <button type="button" class="note-delete" aria-label="Delete note">✕</button>
         </div>
         <p>${escapeHtml(note.text)}</p>
-      </li>`
-    )
-    .join("");
+        ${link}
+      </li>`;
+      })
+      .join("") || `<li class="note-empty">No notes yet.</li>`;
 }
 
-function addNote(category, text) {
-  const note = { id: Date.now(), category, text, date: todayISO() };
+function focusNotesFor(taskId) {
+  state.noteFilter = taskId;
+  renderNotes();
+  els.noteTask.value = String(taskId);
+  $("note-text").focus();
+}
+
+$("note-filter-clear").addEventListener("click", () => {
+  state.noteFilter = null;
+  renderNotes();
+});
+
+function addNote(category, text, taskId = null) {
+  const note = { id: Date.now(), category, text, taskId, date: todayISO() };
   state.notes.unshift(note);
   sync(api.createNote(note));
-  renderNotes();
+  render();
 }
 
 els.noteForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const text = $("note-text").value.trim();
   if (!text) return;
-  addNote($("note-category").value, text);
+  addNote($("note-category").value, text, Number(els.noteTask.value) || null);
   els.noteForm.reset();
+  els.noteTask.value = state.noteFilter ? String(state.noteFilter) : "";
 });
 
 els.notesList.addEventListener("click", (event) => {
+  const taskLink = event.target.closest(".note-task");
+  if (taskLink) {
+    openEditDialog(findTask(Number(taskLink.dataset.task)));
+    return;
+  }
+
   const deleteBtn = event.target.closest(".note-delete");
   if (!deleteBtn) return;
   const id = Number(deleteBtn.closest(".note").dataset.id);
   state.notes = state.notes.filter((note) => note.id !== id);
   sync(api.deleteNote(id));
-  renderNotes();
+  render();
 });
 
 /* ---------- End-of-day review ---------- */
@@ -374,7 +466,8 @@ function renderPlanner() {
     const iso = toISO(date);
     const chips = state.tasks
       .filter((task) => task.dueDate === iso)
-      .map((task) => `<button type="button" class="chip ${task.status}" data-id="${task.id}">${escapeHtml(task.title)}</button>`)
+      .sort((a, b) => (a.dueTime || "99:99").localeCompare(b.dueTime || "99:99"))
+      .map((task) => `<button type="button" class="chip ${task.status}" data-id="${task.id}">${task.dueTime ? `${task.dueTime} ` : ""}${escapeHtml(task.title)}</button>`)
       .join("");
     const outside = isMonth && date.getMonth() !== state.cursor.getMonth();
     const head = isMonth ? date.getDate() : date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
@@ -460,6 +553,7 @@ async function init() {
   render();
   renderNotes();
   checkReminders();
+  checkDeadlines();
 }
 
 init();
