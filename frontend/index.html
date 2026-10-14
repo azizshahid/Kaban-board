@@ -19,6 +19,7 @@
 
         <div class="board-actions">
           <button type="button" id="add-task-btn">＋ Add Task</button>
+          <button type="button" id="plan-btn" class="ghost-btn">☀ Plan my day</button>
           <button type="button" id="review-btn" class="ghost-btn">End-of-day review</button>
           <label class="reminder-setting">
             Remind every
@@ -119,6 +120,7 @@
             <option value="reflection">Reflection</option>
             <option value="time management">Time management</option>
             <option value="critique">Critique</option>
+            <option value="planning">Planning</option>
             <option value="other">Other</option>
           </select>
           <select id="note-task" aria-label="Attach to task"></select>
@@ -146,6 +148,21 @@
           Deadline time (optional)
           <input type="time" id="task-time" />
         </label>
+        <label class="field-label">
+          Time block (optional)
+          <span class="block-row">
+            <input type="time" id="task-block-start" />
+            <select id="task-block-minutes" aria-label="Block length">
+              <option value="">No block</option>
+              <option value="15">15 min</option>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">1 hour</option>
+              <option value="90">1.5 hours</option>
+              <option value="120">2 hours</option>
+            </select>
+          </span>
+        </label>
         <div class="dialog-buttons">
           <button type="button" id="delete-btn" hidden>Delete</button>
           <button type="button" id="cancel-btn">Cancel</button>
@@ -163,6 +180,38 @@
         <div class="dialog-buttons">
           <button type="button" id="review-close" class="ghost-btn">Close</button>
           <button type="submit">Save reflection</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="planning-dialog">
+      <div id="planning-setup">
+        <h2>Plan your day</h2>
+        <p class="review-summary">Choose how long you want to plan. A timer keeps you focused.</p>
+        <div class="duration-row">
+          <button type="button" class="ghost-btn" data-minutes="15">15 min</button>
+          <button type="button" class="ghost-btn" data-minutes="30">30 min</button>
+          <button type="button" class="ghost-btn" data-minutes="45">45 min</button>
+        </div>
+        <div class="dialog-buttons">
+          <button type="button" class="ghost-btn" data-close-planning>Cancel</button>
+        </div>
+      </div>
+
+      <form id="planning-session" hidden>
+        <div class="planning-top">
+          <h2>Planning</h2>
+          <span id="planning-timer">00:00</span>
+        </div>
+        <div class="planning-bar"><span id="planning-progress"></span></div>
+        <h3>Carry over from earlier days</h3>
+        <ul id="planning-carry" class="review-list"></ul>
+        <h3>Today</h3>
+        <ul id="planning-today" class="review-list"></ul>
+        <textarea id="planning-text" rows="3" placeholder="Top priorities for today..."></textarea>
+        <div class="dialog-buttons">
+          <button type="button" class="ghost-btn" data-close-planning>Cancel</button>
+          <button type="submit">Finish planning</button>
         </div>
       </form>
     </dialog>

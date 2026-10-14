@@ -56,3 +56,13 @@
 [data-theme="dark"] .note-btn { background: #422006; color: #fde68a; }
 [data-theme="dark"] .note-filter,
 [data-theme="dark"] .note-task { background: #1e1b4b; color: #c7d2fe; }
+
+/* Time blocks and planning mode */
+[data-theme="dark"] .hour-row { border-top-color: #1f2937; }
+[data-theme="dark"] .hour-row:hover { background: #1e1b4b; }
+[data-theme="dark"] .chip.done-log { background: #052e16; color: #86efac; }
+[data-theme="dark"] .block-tag { color: #a5b4fc; }
+[data-theme="dark"] #planning-dialog h3,
+[data-theme="dark"] .day-section { color: #94a3b8; }
+[data-theme="dark"] #planning-session textarea { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+[data-theme="dark"] .planning-bar { background: #1f2937; }

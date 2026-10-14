@@ -14,8 +14,10 @@ app = Flask(__name__, static_folder="../frontend", static_url_path="")
 TASK_FIELDS = {
     "id", "title", "description", "label", "status",
     "due_date", "started_at", "last_reminder_at", "completed_at",
+    "due_time", "deadline_stage", "block_start", "block_minutes",
 }
-NOTE_FIELDS = {"id", "category", "text", "date"}
+NOTE_FIELDS = {"id", "category", "text", "date", "task_id"}
+COMPLETION_FIELDS = {"task_id", "title", "label", "completed_at", "completed_date"}
 VALID_STATUSES = {"todo", "progress", "done"}
 
 
@@ -47,7 +49,9 @@ def init_db():
                 due_date TEXT,
                 started_at INTEGER,
                 last_reminder_at INTEGER,
-                completed_at INTEGER
+                completed_at INTEGER,
+                due_time TEXT,
+                deadline_stage INTEGER DEFAULT 0
             )"""
         )
         db.execute(
@@ -55,9 +59,31 @@ def init_db():
                 id INTEGER PRIMARY KEY,
                 category TEXT NOT NULL,
                 text TEXT NOT NULL,
-                date TEXT
+                date TEXT,
+                task_id INTEGER
             )"""
         )
+        # History of completed tasks. It survives deleting the task itself.
+        db.execute(
+            """CREATE TABLE IF NOT EXISTS completions (
+                task_id INTEGER PRIMARY KEY,
+                title TEXT NOT NULL,
+                label TEXT,
+                completed_at INTEGER,
+                completed_date TEXT NOT NULL
+            )"""
+        )
+        # Older databases: add the columns that were introduced later
+        for table, column, ddl in (
+            ("tasks", "due_time", "TEXT"),
+            ("tasks", "deadline_stage", "INTEGER DEFAULT 0"),
+            ("tasks", "block_start", "TEXT"),
+            ("tasks", "block_minutes", "INTEGER"),
+            ("notes", "task_id", "INTEGER"),
+        ):
+            existing = {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
+            if column not in existing:
+                db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
 
 
 # ---------- Helpers: JavaScript uses camelCase, the database uses snake_case ----------
@@ -144,6 +170,7 @@ def update_task(task_id):
 @app.delete("/api/tasks/<int:task_id>")
 def delete_task(task_id):
     db = get_db()
+    db.execute("UPDATE notes SET task_id = NULL WHERE task_id = ?", (task_id,))  # keep the notes
     db.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
     db.commit()
     return "", 204
@@ -171,6 +198,39 @@ def create_note():
 def delete_note(note_id):
     db = get_db()
     db.execute("DELETE FROM notes WHERE id = ?", (note_id,))
+    db.commit()
+    return "", 204
+
+
+# ---------- Completion history API ----------
+
+@app.get("/api/completions")
+def list_completions():
+    rows = get_db().execute("SELECT * FROM completions ORDER BY completed_at").fetchall()
+    return jsonify([row_to_json(row) for row in rows])
+
+
+@app.put("/api/completions/<int:task_id>")
+def save_completion(task_id):
+    data = clean(request.get_json(silent=True), COMPLETION_FIELDS)
+    if not data.get("title") or not data.get("completed_date"):
+        return jsonify(error="A title and a completed date are required"), 400
+
+    db = get_db()
+    db.execute(
+        "INSERT OR REPLACE INTO completions (task_id, title, label, completed_at, completed_date) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (task_id, data["title"], data.get("label"), data.get("completed_at"), data["completed_date"]),
+    )
+    db.commit()
+    row = db.execute("SELECT * FROM completions WHERE task_id = ?", (task_id,)).fetchone()
+    return jsonify(row_to_json(row))
+
+
+@app.delete("/api/completions/<int:task_id>")
+def delete_completion(task_id):
+    db = get_db()
+    db.execute("DELETE FROM completions WHERE task_id = ?", (task_id,))
     db.commit()
     return "", 204
 

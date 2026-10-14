@@ -5,6 +5,7 @@ import { api, load, save } from "./storage.js";
 const state = {
   tasks: [],
   notes: [],
+  completions: [],
   settings: { reminderMinutes: 30, theme: "system", ...load("settings", {}) },
   editingId: null,
   noteFilter: null,
@@ -57,6 +58,57 @@ const formatDate = (iso) =>
 
 const findTask = (id) => state.tasks.find((task) => task.id === id);
 
+/* Time blocks: a start time plus a length in minutes, on the task's date */
+const toMinutes = (time) => {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+const pad = (n) => String(n).padStart(2, "0");
+const blockRange = (task) => {
+  const end = toMinutes(task.blockStart) + (task.blockMinutes || 30);
+  return `${task.blockStart}–${pad(Math.floor(end / 60) % 24)}:${pad(end % 60)}`;
+};
+const taskStart = (task) => task.blockStart || task.dueTime || "99:99";
+const byTime = (a, b) => taskStart(a).localeCompare(taskStart(b));
+
+function findOverlap(candidate) {
+  if (!candidate.blockStart || candidate.status === "done") return null;
+  const start = toMinutes(candidate.blockStart);
+  const end = start + (candidate.blockMinutes || 30);
+  return (
+    state.tasks.find(
+      (other) =>
+        other.id !== candidate.id &&
+        other.status !== "done" &&
+        other.dueDate === candidate.dueDate &&
+        other.blockStart &&
+        toMinutes(other.blockStart) < end &&
+        start < toMinutes(other.blockStart) + (other.blockMinutes || 30)
+    ) || null
+  );
+}
+
+/* Completion history: stays even after the task is deleted, so you can reflect later */
+function syncCompletion(task) {
+  const existing = state.completions.find((entry) => entry.taskId === task.id);
+
+  if (task.status === "done" && !existing) {
+    const when = task.completedAt || (task.dueDate ? new Date(`${task.dueDate}T12:00`).getTime() : Date.now());
+    const entry = {
+      taskId: task.id,
+      title: task.title,
+      label: task.label,
+      completedAt: when,
+      completedDate: toISO(new Date(when)),
+    };
+    state.completions.push(entry);
+    sync(api.saveCompletion(entry));
+  } else if (task.status !== "done" && existing) {
+    state.completions = state.completions.filter((entry) => entry.taskId !== task.id);
+    sync(api.deleteCompletion(task.id));
+  }
+}
+
 /* A task may have a date and an optional deadline time */
 const deadlineOf = (task) => (task.dueDate && task.dueTime ? new Date(`${task.dueDate}T${task.dueTime}`) : null);
 const formatDeadline = (task) =>
@@ -106,7 +158,7 @@ function createCard(task) {
   const noteCount = state.notes.filter((note) => note.taskId === task.id).length;
     const footer = isDone
     ? `<span class="done-date">✓ Completed</span>`
-    : `<span class="due-date ${isOverdue ? "overdue" : ""}">◷ ${formatDeadline(task)}</span>`;
+    : `<span class="due-date ${isOverdue ? "overdue" : ""}">◷ ${formatDeadline(task)}</span>${task.blockStart ? `<span class="block-tag">▦ ${blockRange(task)}</span>` : ""}`;
 
   return `
     <article class="task-card ${isDone ? "completed-card" : ""}" data-id="${task.id}">
@@ -131,12 +183,13 @@ function render() {
   });
   els.total.textContent = state.tasks.length;
   renderNotes();
+  if (planningEls.dialog.open) renderPlanningLists();
   if (state.view !== "board") renderPlanner();
 }
 
 /* ---------- Add / edit / delete ---------- */
 
-function openAddDialog(status, date = todayISO()) {
+function openAddDialog(status, date = todayISO(), blockStart = "") {
   state.editingId = null;
   els.taskForm.reset();
   $("dialog-title").textContent = "New Task";
@@ -145,6 +198,8 @@ function openAddDialog(status, date = todayISO()) {
   $("task-status").value = status;
   $("task-date").value = date;
   $("task-time").value = "";
+  $("task-block-start").value = blockStart;
+  $("task-block-minutes").value = blockStart ? "30" : "";
   els.taskDialog.showModal();
 }
 
@@ -159,6 +214,8 @@ function openEditDialog(task) {
   $("task-status").value = task.status;
   $("task-date").value = task.dueDate;
   $("task-time").value = task.dueTime || "";
+  $("task-block-start").value = task.blockStart || "";
+  $("task-block-minutes").value = task.blockMinutes ? String(task.blockMinutes) : "";
   els.taskDialog.showModal();
 }
 
@@ -170,18 +227,23 @@ function readTaskForm() {
     status: $("task-status").value,
     dueDate: $("task-date").value,
     dueTime: $("task-time").value || null,
+    blockStart: $("task-block-start").value || null,
+    blockMinutes: $("task-block-start").value ? Number($("task-block-minutes").value) || 30 : null,
   };
 }
 
 els.taskForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const values = readTaskForm();
+  const clash = findOverlap({ id: state.editingId, ...values });
+  if (clash && !confirm(`This time block overlaps with "${clash.title}" (${blockRange(clash)}). Save anyway?`)) return;
   const task = state.editingId === null ? { id: Date.now() } : findTask(state.editingId);
 
   if (task.dueDate !== values.dueDate || task.dueTime !== values.dueTime) task.deadlineStage = 0;
   Object.assign(task, values);
   if (task.status === "progress" && !task.startedAt) task.startedAt = Date.now();
   if (task.status === "done" && !task.completedAt) task.completedAt = Date.now();
+  syncCompletion(task);
   if (state.editingId === null) state.tasks.push(task);
   sync(state.editingId === null ? api.createTask(task) : api.updateTask(task.id, task));
 
@@ -224,6 +286,7 @@ els.board.addEventListener("click", (event) => {
   if (!button) return;
   if (button.dataset.action === "start") requestNotificationPermission();
   ACTIONS[button.dataset.action](task);
+  syncCompletion(task);
   sync(api.updateTask(task.id, task));
   persistTasks();
 });
@@ -385,9 +448,7 @@ els.notesList.addEventListener("click", (event) => {
 
 function renderReview() {
   const today = todayISO();
-  const doneToday = state.tasks.filter(
-    (task) => task.status === "done" && task.completedAt && toISO(new Date(task.completedAt)) === today
-  ).length;
+  const doneToday = state.completions.filter((entry) => entry.completedDate === today).length;
   const open = state.tasks.filter((task) => task.status !== "done" && task.dueDate && task.dueDate <= today);
 
   els.reviewSummary.textContent = `${doneToday} completed today · ${open.length} still open`;
@@ -455,28 +516,67 @@ function plannerRange() {
   return { start: startOfWeek(firstOfMonth), count: 42, title };
 }
 
+const dayItems = (iso) => ({
+  open: state.tasks.filter((task) => task.status !== "done" && task.dueDate === iso).sort(byTime),
+  done: state.completions.filter((entry) => entry.completedDate === iso),
+});
+
+const plannerChip = (task) => {
+  const time = task.blockStart || task.dueTime;
+  return `<button type="button" class="chip ${task.status}" data-id="${task.id}">${time ? `${time} ` : ""}${escapeHtml(task.title)}</button>`;
+};
+
+const doneChip = (entry) => `<span class="chip done-log" title="Completed">✓ ${escapeHtml(entry.title)}</span>`;
+
+function renderDayDetail(iso) {
+  const { open, done } = dayItems(iso);
+  const hourOf = (task) => Math.min(22, Math.max(6, Number(task.blockStart.slice(0, 2))));
+
+  const rows = Array.from({ length: 17 }, (_, i) => {
+    const hour = i + 6;
+    const label = `${pad(hour)}:00`;
+    const blocks = open
+      .filter((task) => task.blockStart && hourOf(task) === hour)
+      .map((task) => `<button type="button" class="chip block ${task.status}" data-id="${task.id}">${blockRange(task)} · ${escapeHtml(task.title)}</button>`)
+      .join("");
+    return `<div class="hour-row" data-hour="${label}"><span class="hour-label">${label}</span><div class="hour-slot">${blocks}</div></div>`;
+  }).join("");
+
+  const loose = open.filter((task) => !task.blockStart);
+  return `<div class="day-cell day-detail" data-date="${iso}">
+    <div class="day-section">Time blocks (click an hour to add one)</div>${rows}
+    <div class="day-section">No time block (${loose.length})</div>
+    ${loose.map(plannerChip).join("") || '<p class="day-empty">Nothing here.</p>'}
+    <div class="day-section">Completed (${done.length})</div>
+    ${done.map(doneChip).join("") || '<p class="day-empty">Nothing completed this day.</p>'}
+  </div>`;
+}
+
 function renderPlanner() {
   const { start, count, title } = plannerRange();
   const today = todayISO();
   const isMonth = state.view === "month";
-  const labels = isMonth ? WEEKDAYS.map((day) => `<div class="weekday-label">${day}</div>`).join("") : "";
 
+  els.plannerTitle.textContent = title;
+  els.plannerGrid.className = `planner-grid ${state.view}`;
+
+  if (state.view === "day") {
+    els.plannerGrid.innerHTML = renderDayDetail(toISO(start));
+    return;
+  }
+
+  const labels = isMonth ? WEEKDAYS.map((day) => `<div class="weekday-label">${day}</div>`).join("") : "";
   const cells = Array.from({ length: count }, (_, i) => {
     const date = addDays(start, i);
     const iso = toISO(date);
-    const chips = state.tasks
-      .filter((task) => task.dueDate === iso)
-      .sort((a, b) => (a.dueTime || "99:99").localeCompare(b.dueTime || "99:99"))
-      .map((task) => `<button type="button" class="chip ${task.status}" data-id="${task.id}">${task.dueTime ? `${task.dueTime} ` : ""}${escapeHtml(task.title)}</button>`)
-      .join("");
+    const { open, done } = dayItems(iso);
+    const chips = open.map(plannerChip).join("") + done.map(doneChip).join("");
     const outside = isMonth && date.getMonth() !== state.cursor.getMonth();
     const head = isMonth ? date.getDate() : date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
     return `<div class="day-cell ${iso === today ? "today" : ""} ${outside ? "outside" : ""}" data-date="${iso}">
       <div class="day-head">${head}</div>${chips}</div>`;
   }).join("");
 
-  els.plannerTitle.textContent = title;
-  els.plannerGrid.className = `planner-grid ${state.view}`;
   els.plannerGrid.innerHTML = labels + cells;
 }
 
@@ -515,8 +615,105 @@ els.plannerGrid.addEventListener("click", (event) => {
     openEditDialog(findTask(Number(chip.dataset.id)));
     return;
   }
+  const row = event.target.closest(".hour-row");
+  if (row) {
+    openAddDialog("todo", row.closest(".day-cell").dataset.date, row.dataset.hour);
+    return;
+  }
+
   const cell = event.target.closest(".day-cell");
   if (cell) openAddDialog("todo", cell.dataset.date);
+});
+
+/* ---------- Planning mode ---------- */
+
+const planning = { timerId: null, endsAt: 0, minutes: 0 };
+const planningEls = {
+  dialog: $("planning-dialog"),
+  setup: $("planning-setup"),
+  session: $("planning-session"),
+  timer: $("planning-timer"),
+  progress: $("planning-progress"),
+  carry: $("planning-carry"),
+  today: $("planning-today"),
+};
+
+function renderPlanningLists() {
+  const today = todayISO();
+  const open = state.tasks.filter((task) => task.status !== "done" && task.dueDate);
+  const carried = open.filter((task) => task.dueDate < today);
+  const todays = open.filter((task) => task.dueDate === today).sort(byTime);
+
+  planningEls.carry.innerHTML =
+    carried
+      .map((task) => `<li><span>${escapeHtml(task.title)}</span><button type="button" class="action-btn" data-plan-move="${task.id}">Move to today</button></li>`)
+      .join("") || "<li>Nothing carried over.</li>";
+
+  planningEls.today.innerHTML =
+    todays
+      .map((task) => `<li><span>${task.blockStart ? `${blockRange(task)} · ` : ""}${escapeHtml(task.title)}</span><button type="button" class="action-btn secondary" data-plan-edit="${task.id}">Time block</button></li>`)
+      .join("") || "<li>No tasks for today yet. Add some with ＋ Add Task.</li>";
+}
+
+function tickPlanning() {
+  const total = planning.minutes * 60000;
+  const left = Math.max(0, planning.endsAt - Date.now());
+  planningEls.timer.textContent = `${pad(Math.floor(left / 60000))}:${pad(Math.floor((left % 60000) / 1000))}`;
+  planningEls.progress.style.width = `${100 - (left / total) * 100}%`;
+
+  if (left === 0) {
+    clearInterval(planning.timerId);
+    planning.timerId = null;
+    notify("Planning time is up. Finish your plan and start the day.");
+  }
+}
+
+function startPlanning(minutes) {
+  planning.minutes = minutes;
+  planning.endsAt = Date.now() + minutes * 60000;
+  planningEls.setup.hidden = true;
+  planningEls.session.hidden = false;
+  renderPlanningLists();
+  tickPlanning();
+  clearInterval(planning.timerId);
+  planning.timerId = setInterval(tickPlanning, 1000);
+}
+
+$("plan-btn").addEventListener("click", () => {
+  planningEls.setup.hidden = false;
+  planningEls.session.hidden = true;
+  planningEls.dialog.showModal();
+});
+
+planningEls.dialog.addEventListener("close", () => {
+  clearInterval(planning.timerId);
+  planning.timerId = null;
+});
+
+planningEls.dialog.addEventListener("click", (event) => {
+  const duration = event.target.closest("[data-minutes]");
+  if (duration) startPlanning(Number(duration.dataset.minutes));
+
+  if (event.target.closest("[data-close-planning]")) planningEls.dialog.close();
+
+  const move = event.target.closest("[data-plan-move]");
+  if (move) {
+    const task = findTask(Number(move.dataset.planMove));
+    task.dueDate = todayISO();
+    sync(api.updateTask(task.id, { dueDate: task.dueDate }));
+    persistTasks();
+  }
+
+  const edit = event.target.closest("[data-plan-edit]");
+  if (edit) openEditDialog(findTask(Number(edit.dataset.planEdit)));
+});
+
+planningEls.session.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const text = $("planning-text").value.trim();
+  if (text) addNote("planning", text);
+  planningEls.session.reset();
+  planningEls.dialog.close();
 });
 
 /* ---------- Theme ---------- */
@@ -545,11 +742,16 @@ els.today.textContent = new Date().toLocaleDateString("en-GB", {
 });
 async function init() {
   try {
-    [state.tasks, state.notes] = await Promise.all([api.listTasks(), api.listNotes()]);
+    [state.tasks, state.notes, state.completions] = await Promise.all([
+      api.listTasks(),
+      api.listNotes(),
+      api.listCompletions(),
+    ]);
   } catch (error) {
     console.error(error);
     notify("Could not load data. Is the Flask server running?");
   }
+  state.tasks.filter((task) => task.status === "done").forEach(syncCompletion); // backfill history
   render();
   renderNotes();
   checkReminders();

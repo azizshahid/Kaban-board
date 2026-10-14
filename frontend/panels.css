@@ -183,3 +183,41 @@
   cursor: pointer;
 }
 .note-empty { color: #94a3b8; font-size: 11px; list-style: none; }
+
+/* Time blocks, day timeline and completion history */
+.block-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.block-tag { color: #4f46e5; font-size: 9px; font-weight: 700; }
+
+.hour-row { display: grid; grid-template-columns: 48px 1fr; gap: 8px; min-height: 34px; border-top: 1px solid #e7ecf3; }
+.hour-row:hover { background: #eef2ff; }
+.hour-label { padding-top: 8px; color: #94a3b8; font-size: 10px; }
+.hour-slot { padding: 2px 0 6px; }
+.chip.block { padding: 8px; }
+.chip.done-log { background: #dcfce7; color: #16a34a; cursor: default; }
+
+.day-section { margin: 14px 0 4px; color: #64748b; font-size: 11px; font-weight: 700; }
+.day-section:first-child { margin-top: 0; }
+.day-empty { margin: 4px 0; color: #94a3b8; font-size: 10px; }
+
+/* Planning mode */
+#planning-dialog { width: min(92%, 520px); }
+#planning-dialog h2 { margin: 0 0 6px; font-size: 16px; }
+#planning-dialog h3 { margin: 14px 0 6px; color: #64748b; font-size: 12px; }
+#planning-setup[hidden],
+#planning-session[hidden] { display: none; }
+#planning-session { display: grid; gap: 4px; }
+#planning-session textarea {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+  resize: vertical;
+}
+.duration-row { display: flex; gap: 8px; margin: 14px 0; }
+.duration-row .ghost-btn { flex: 1; padding: 16px; font-size: 13px; }
+.planning-top { display: flex; align-items: center; justify-content: space-between; }
+#planning-timer { color: #6366f1; font-size: 26px; font-variant-numeric: tabular-nums; font-weight: 700; }
+.planning-bar { height: 5px; margin: 10px 0; overflow: hidden; border-radius: 10px; background: #e2e8f0; }
+.planning-bar span { display: block; width: 0; height: 100%; background: #6366f1; transition: width 1s linear; }

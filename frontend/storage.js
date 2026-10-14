@@ -20,6 +20,9 @@ export const api = {
   listNotes: () => request("/notes"),
   createNote: (note) => request("/notes", { method: "POST", body: note }),
   deleteNote: (id) => request(`/notes/${id}`, { method: "DELETE" }),
+  listCompletions: () => request("/completions"),
+  saveCompletion: (entry) => request(`/completions/${entry.taskId}`, { method: "PUT", body: entry }),
+  deleteCompletion: (taskId) => request(`/completions/${taskId}`, { method: "DELETE" }),
 };
 
 const PREFIX = "productivity-board.";
