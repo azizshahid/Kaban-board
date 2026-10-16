@@ -6,6 +6,7 @@ const state = {
   tasks: [],
   notes: [],
   completions: [],
+  delays: [],
   settings: { reminderMinutes: 30, theme: "system", ...load("settings", {}) },
   editingId: null,
   noteFilter: null,
@@ -28,6 +29,7 @@ const els = {
   interval: $("reminder-interval"),
   theme: $("theme-select"),
   noteTask: $("note-task"),
+  delayed: $("delayed-count"),
   noteFilter: $("note-filter"),
   planner: $("planner"),
   plannerGrid: $("planner-grid"),
@@ -86,6 +88,28 @@ function findOverlap(candidate) {
         start < toMinutes(other.blockStart) + (other.blockMinutes || 30)
     ) || null
   );
+}
+
+/* Delay history: logged whenever an open task is moved to a later date or time */
+function recordDelay(task, newDate, newTime) {
+  if (!task.dueDate || task.status === "done") return;
+  const movedToLaterDay = newDate > task.dueDate;
+  const movedToLaterTime = newDate === task.dueDate && task.dueTime && newTime && newTime > task.dueTime;
+  if (!movedToLaterDay && !movedToLaterTime) return;
+
+  const entry = {
+    id: Date.now(),
+    taskId: task.id,
+    title: task.title,
+    fromDate: task.dueDate,
+    fromTime: task.dueTime || null,
+    toDate: newDate,
+    toTime: newTime || null,
+    createdAt: Date.now(),
+    createdDate: todayISO(),
+  };
+  state.delays.push(entry);
+  sync(api.createDelay(entry));
 }
 
 /* Completion history: stays even after the task is deleted, so you can reflect later */
@@ -156,6 +180,10 @@ function createCard(task) {
   const isDone = task.status === "done";
   const isOverdue = !isDone && isPastDeadline(task);
   const noteCount = state.notes.filter((note) => note.taskId === task.id).length;
+  const delayCount = state.delays.filter((delay) => delay.taskId === task.id).length;
+  const tags =
+    (isOverdue ? `<span class="delay-tag">⏳ Delayed · complete it</span>` : "") +
+    (delayCount ? `<span class="delay-tag soft">↻ Rescheduled ×${delayCount}</span>` : "");
     const footer = isDone
     ? `<span class="done-date">✓ Completed</span>`
     : `<span class="due-date ${isOverdue ? "overdue" : ""}">◷ ${formatDeadline(task)}</span>${task.blockStart ? `<span class="block-tag">▦ ${blockRange(task)}</span>` : ""}`;
@@ -167,6 +195,7 @@ function createCard(task) {
         <button type="button" class="menu-btn" aria-label="Edit task">•••</button>
       </div>
       <h3>${escapeHtml(task.title)}</h3>
+      ${tags ? `<div class="tag-row">${tags}</div>` : ""}
       <p>${escapeHtml(task.description)}</p>
       <div class="task-footer">${footer}</div>
       <div class="card-actions">${ACTION_BUTTONS[task.status]}<button type="button" class="note-btn" title="Notes for this task">📝${noteCount ? ` ${noteCount}` : ""}</button></div>
@@ -182,6 +211,7 @@ function render() {
     els.counts[status].textContent = cards[status].length;
   });
   els.total.textContent = state.tasks.length;
+  els.delayed.textContent = state.tasks.filter((task) => task.status !== "done" && isPastDeadline(task)).length;
   renderNotes();
   if (planningEls.dialog.open) renderPlanningLists();
   if (state.view !== "board") renderPlanner();
@@ -239,6 +269,7 @@ els.taskForm.addEventListener("submit", (event) => {
   if (clash && !confirm(`This time block overlaps with "${clash.title}" (${blockRange(clash)}). Save anyway?`)) return;
   const task = state.editingId === null ? { id: Date.now() } : findTask(state.editingId);
 
+  if (state.editingId !== null && values.status !== "done") recordDelay(task, values.dueDate, values.dueTime);
   if (task.dueDate !== values.dueDate || task.dueTime !== values.dueTime) task.deadlineStage = 0;
   Object.assign(task, values);
   if (task.status === "progress" && !task.startedAt) task.startedAt = Date.now();
@@ -473,6 +504,7 @@ els.reviewList.addEventListener("click", (event) => {
   const moveBtn = event.target.closest("[data-move]");
   if (!moveBtn) return;
   const task = findTask(Number(moveBtn.dataset.move));
+  recordDelay(task, tomorrowISO(), task.dueTime);
   task.dueDate = tomorrowISO();
   sync(api.updateTask(task.id, { dueDate: task.dueDate }));
   persistTasks();
@@ -502,6 +534,7 @@ const shortDate = (date) => date.toLocaleDateString("en-GB", { day: "numeric", m
 
 function plannerRange() {
   const cursor = state.cursor;
+  if (state.view === "year") return { start: cursor, count: 0, title: String(cursor.getFullYear()) };
   if (state.view === "day") {
     const title = cursor.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     return { start: cursor, count: 1, title };
@@ -520,14 +553,21 @@ const dayItems = (iso) => ({
   open: state.tasks.filter((task) => task.status !== "done" && task.dueDate === iso).sort(byTime),
   done: state.completions.filter((entry) => entry.completedDate === iso),
   notes: state.notes.filter((note) => note.date === iso),
+  delayed: state.delays.filter((delay) => delay.fromDate === iso),
 });
 
 const plannerChip = (task) => {
   const time = task.blockStart || task.dueTime;
-  return `<button type="button" class="chip ${task.status}" data-id="${task.id}">${time ? `${time} ` : ""}${escapeHtml(task.title)}</button>`;
+  const late = isPastDeadline(task);
+  return `<button type="button" class="chip ${task.status} ${late ? "late" : ""}" data-id="${task.id}">${late ? "⏳ " : ""}${time ? `${time} ` : ""}${escapeHtml(task.title)}</button>`;
 };
 
 const doneChip = (entry) => `<span class="chip done-log" title="Completed">✓ ${escapeHtml(entry.title)}</span>`;
+
+const delayChip = (delay) =>
+  `<span class="chip delay-log" title="Delayed from ${delay.fromDate}">⏳ ${escapeHtml(delay.title)} → ${formatDate(delay.toDate)}</span>`;
+
+const delayLine = (delay) => `<div class="day-delay">⏳ <strong>${escapeHtml(delay.title)}</strong>: planned for ${formatDate(delay.fromDate)}${delay.fromTime ? ` ${delay.fromTime}` : ""}, moved to ${formatDate(delay.toDate)}${delay.toTime ? ` ${delay.toTime}` : ""} (rescheduled on ${formatDate(delay.createdDate)})</div>`;
 
 const noteChip = (note) =>
   `<button type="button" class="chip note-chip" data-note-date="${note.date}" title="Open this day">📝 ${escapeHtml(note.category)}: ${escapeHtml(note.text)}</button>`;
@@ -541,7 +581,7 @@ const dayNote = (note) => {
 };
 
 function renderDayDetail(iso) {
-  const { open, done, notes } = dayItems(iso);
+  const { open, done, notes, delayed } = dayItems(iso);
   const hourOf = (task) => Math.min(22, Math.max(6, Number(task.blockStart.slice(0, 2))));
 
   const rows = Array.from({ length: 17 }, (_, i) => {
@@ -549,7 +589,7 @@ function renderDayDetail(iso) {
     const label = `${pad(hour)}:00`;
     const blocks = open
       .filter((task) => task.blockStart && hourOf(task) === hour)
-      .map((task) => `<button type="button" class="chip block ${task.status}" data-id="${task.id}">${blockRange(task)} · ${escapeHtml(task.title)}</button>`)
+      .map((task) => `<button type="button" class="chip block ${task.status}" data-id="${task.id}">${isPastDeadline(task) ? "⏳ " : ""}${blockRange(task)} · ${escapeHtml(task.title)}</button>`)
       .join("");
     return `<div class="hour-row" data-hour="${label}"><span class="hour-label">${label}</span><div class="hour-slot">${blocks}</div></div>`;
   }).join("");
@@ -561,9 +601,29 @@ function renderDayDetail(iso) {
     ${loose.map(plannerChip).join("") || '<p class="day-empty">Nothing here.</p>'}
     <div class="day-section">Completed (${done.length})</div>
     ${done.map(doneChip).join("") || '<p class="day-empty">Nothing completed this day.</p>'}
+    <div class="day-section">Delayed from this day (${delayed.length})</div>
+    ${delayed.map(delayLine).join("") || '<p class="day-empty">Nothing was delayed from this day.</p>'}
     <div class="day-section">Notes &amp; reflections (${notes.length})</div>
     ${notes.map(dayNote).join("") || '<p class="day-empty">No notes written this day.</p>'}
   </div>`;
+}
+
+function renderYear(year) {
+  return Array.from({ length: 12 }, (_, month) => {
+    const prefix = `${year}-${pad(month + 1)}`;
+    const inMonth = (iso) => Boolean(iso) && iso.startsWith(prefix);
+    const completed = state.completions.filter((entry) => inMonth(entry.completedDate)).length;
+    const stillLate = state.tasks.filter((task) => task.status !== "done" && isPastDeadline(task) && inMonth(task.dueDate)).length;
+    const delayed = state.delays.filter((delay) => inMonth(delay.fromDate)).length + stillLate;
+    const notes = state.notes.filter((note) => inMonth(note.date)).length;
+    const name = new Date(year, month, 1).toLocaleDateString("en-GB", { month: "long" });
+    return `<button type="button" class="year-month" data-month="${month}">
+      <strong>${name}</strong>
+      <span class="stat done">✓ ${completed} completed</span>
+      <span class="stat late">⏳ ${delayed} delayed</span>
+      <span class="stat">📝 ${notes} notes</span>
+    </button>`;
+  }).join("");
 }
 
 function renderPlanner() {
@@ -574,6 +634,11 @@ function renderPlanner() {
   els.plannerTitle.textContent = title;
   els.plannerGrid.className = `planner-grid ${state.view}`;
 
+  if (state.view === "year") {
+    els.plannerGrid.innerHTML = renderYear(state.cursor.getFullYear());
+    return;
+  }
+
   if (state.view === "day") {
     els.plannerGrid.innerHTML = renderDayDetail(toISO(start));
     return;
@@ -583,8 +648,9 @@ function renderPlanner() {
   const cells = Array.from({ length: count }, (_, i) => {
     const date = addDays(start, i);
     const iso = toISO(date);
-    const { open, done, notes } = dayItems(iso);
-    const chips = open.map(plannerChip).join("") + done.map(doneChip).join("") + notes.map(noteChip).join("");
+    const { open, done, notes, delayed } = dayItems(iso);
+    const chips =
+      open.map(plannerChip).join("") + done.map(doneChip).join("") + delayed.map(delayChip).join("") + notes.map(noteChip).join("");
     const outside = isMonth && date.getMonth() !== state.cursor.getMonth();
     const head = isMonth ? date.getDate() : date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
     return `<div class="day-cell ${iso === today ? "today" : ""} ${outside ? "outside" : ""}" data-date="${iso}">
@@ -604,7 +670,9 @@ function setView(view) {
 
 function movePlanner(direction) {
   const cursor = state.cursor;
-  if (state.view === "month") {
+  if (state.view === "year") {
+    state.cursor = new Date(cursor.getFullYear() + direction, 0, 1);
+  } else if (state.view === "month") {
     state.cursor = new Date(cursor.getFullYear(), cursor.getMonth() + direction, 1);
   } else {
     state.cursor = addDays(cursor, direction * (state.view === "week" ? 7 : 1));
@@ -624,6 +692,13 @@ $("planner-today").addEventListener("click", () => {
 });
 
 els.plannerGrid.addEventListener("click", (event) => {
+  const monthButton = event.target.closest(".year-month");
+  if (monthButton) {
+    state.cursor = new Date(state.cursor.getFullYear(), Number(monthButton.dataset.month), 1);
+    setView("month");
+    return;
+  }
+
   const chip = event.target.closest(".chip");
   if (chip) {
     openEditDialog(findTask(Number(chip.dataset.id)));
@@ -729,6 +804,7 @@ planningEls.dialog.addEventListener("click", (event) => {
   const move = event.target.closest("[data-plan-move]");
   if (move) {
     const task = findTask(Number(move.dataset.planMove));
+    recordDelay(task, todayISO(), task.dueTime);
     task.dueDate = todayISO();
     sync(api.updateTask(task.id, { dueDate: task.dueDate }));
     persistTasks();
@@ -772,10 +848,11 @@ els.today.textContent = new Date().toLocaleDateString("en-GB", {
 });
 async function init() {
   try {
-    [state.tasks, state.notes, state.completions] = await Promise.all([
+    [state.tasks, state.notes, state.completions, state.delays] = await Promise.all([
       api.listTasks(),
       api.listNotes(),
       api.listCompletions(),
+      api.listDelays(),
     ]);
   } catch (error) {
     console.error(error);

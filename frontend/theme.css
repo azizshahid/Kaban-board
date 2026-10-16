@@ -70,3 +70,12 @@
 [data-theme="dark"] .chip.note-chip { background: #422006; color: #fde68a; }
 [data-theme="dark"] .day-note { background: #1c1917; }
 [data-theme="dark"] .day-note p { color: #cbd5e1; }
+
+/* Delayed tasks and year view */
+[data-theme="dark"] .delay-tag { background: #450a0a; color: #fca5a5; }
+[data-theme="dark"] .delay-tag.soft { background: #431407; color: #fdba74; }
+[data-theme="dark"] .late-count { color: #f87171; }
+[data-theme="dark"] .chip.delay-log { background: #450a0a; color: #fca5a5; }
+[data-theme="dark"] .day-delay { background: #2a1010; color: #fca5a5; }
+[data-theme="dark"] .year-month { background: #0f172a; border-color: #1f2937; }
+[data-theme="dark"] .year-month strong { color: #e2e8f0; }

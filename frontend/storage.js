@@ -23,6 +23,8 @@ export const api = {
   listCompletions: () => request("/completions"),
   saveCompletion: (entry) => request(`/completions/${entry.taskId}`, { method: "PUT", body: entry }),
   deleteCompletion: (taskId) => request(`/completions/${taskId}`, { method: "DELETE" }),
+  listDelays: () => request("/delays"),
+  createDelay: (entry) => request("/delays", { method: "POST", body: entry }),
 };
 
 const PREFIX = "productivity-board.";

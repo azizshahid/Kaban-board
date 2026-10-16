@@ -18,6 +18,10 @@ TASK_FIELDS = {
 }
 NOTE_FIELDS = {"id", "category", "text", "date", "task_id"}
 COMPLETION_FIELDS = {"task_id", "title", "label", "completed_at", "completed_date"}
+DELAY_FIELDS = {
+    "id", "task_id", "title", "from_date", "from_time",
+    "to_date", "to_time", "created_at", "created_date",
+}
 VALID_STATUSES = {"todo", "progress", "done"}
 
 
@@ -71,6 +75,20 @@ def init_db():
                 label TEXT,
                 completed_at INTEGER,
                 completed_date TEXT NOT NULL
+            )"""
+        )
+        # Every time a task is rescheduled to a later date or time
+        db.execute(
+            """CREATE TABLE IF NOT EXISTS delays (
+                id INTEGER PRIMARY KEY,
+                task_id INTEGER,
+                title TEXT NOT NULL,
+                from_date TEXT NOT NULL,
+                from_time TEXT,
+                to_date TEXT NOT NULL,
+                to_time TEXT,
+                created_at INTEGER,
+                created_date TEXT
             )"""
         )
         # Older databases: add the columns that were introduced later
@@ -233,6 +251,24 @@ def delete_completion(task_id):
     db.execute("DELETE FROM completions WHERE task_id = ?", (task_id,))
     db.commit()
     return "", 204
+
+
+# ---------- Delay history API ----------
+
+@app.get("/api/delays")
+def list_delays():
+    rows = get_db().execute("SELECT * FROM delays ORDER BY id").fetchall()
+    return jsonify([row_to_json(row) for row in rows])
+
+
+@app.post("/api/delays")
+def create_delay():
+    delay = clean(request.get_json(silent=True), DELAY_FIELDS)
+    if not (delay.get("title") and delay.get("from_date") and delay.get("to_date")):
+        return jsonify(error="A title, from date and to date are required"), 400
+
+    new_id = insert("delays", delay)
+    return jsonify(row_to_json(fetch_one("delays", new_id))), 201
 
 
 if __name__ == "__main__":

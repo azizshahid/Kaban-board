@@ -227,3 +227,40 @@
 .day-note { margin: 6px 0; padding: 10px; border-radius: 8px; background: #fefce8; }
 .day-note small { color: #64748b; font-size: 10px; }
 .day-note p { margin: 6px 0 0; color: #475569; font-size: 12px; line-height: 1.5; white-space: pre-wrap; }
+
+/* Delayed tasks */
+.tag-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.delay-tag {
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.delay-tag.soft { background: #ffedd5; color: #c2410c; }
+.late-count { color: #dc2626; font-weight: 700; }
+
+.chip.late { box-shadow: inset 0 0 0 1px #dc2626; }
+.chip.delay-log { background: #fee2e2; color: #dc2626; cursor: default; }
+.day-delay { margin: 6px 0; padding: 8px 10px; border-radius: 8px; background: #fef2f2; color: #991b1b; font-size: 11px; line-height: 1.5; }
+
+/* Year view */
+.planner-grid.year { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.year-month {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid #e7ecf3;
+  border-radius: 12px;
+  background: #f8fafc;
+  text-align: left;
+  cursor: pointer;
+}
+.year-month:hover { border-color: #6366f1; }
+.year-month strong { color: #334155; font-size: 13px; }
+.year-month .stat { color: #64748b; font-size: 11px; }
+.year-month .stat.done { color: #16a34a; }
+.year-month .stat.late { color: #dc2626; }
