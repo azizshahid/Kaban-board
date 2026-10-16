@@ -221,3 +221,9 @@
 #planning-timer { color: #6366f1; font-size: 26px; font-variant-numeric: tabular-nums; font-weight: 700; }
 .planning-bar { height: 5px; margin: 10px 0; overflow: hidden; border-radius: 10px; background: #e2e8f0; }
 .planning-bar span { display: block; width: 0; height: 100%; background: #6366f1; transition: width 1s linear; }
+
+/* Notes and reflections inside the planner */
+.chip.note-chip { background: #fef9c3; color: #854d0e; }
+.day-note { margin: 6px 0; padding: 10px; border-radius: 8px; background: #fefce8; }
+.day-note small { color: #64748b; font-size: 10px; }
+.day-note p { margin: 6px 0 0; color: #475569; font-size: 12px; line-height: 1.5; white-space: pre-wrap; }

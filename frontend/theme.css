@@ -66,3 +66,7 @@
 [data-theme="dark"] .day-section { color: #94a3b8; }
 [data-theme="dark"] #planning-session textarea { background: #0f172a; color: #e2e8f0; border-color: #334155; }
 [data-theme="dark"] .planning-bar { background: #1f2937; }
+
+[data-theme="dark"] .chip.note-chip { background: #422006; color: #fde68a; }
+[data-theme="dark"] .day-note { background: #1c1917; }
+[data-theme="dark"] .day-note p { color: #cbd5e1; }

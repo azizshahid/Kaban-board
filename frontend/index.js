@@ -519,6 +519,7 @@ function plannerRange() {
 const dayItems = (iso) => ({
   open: state.tasks.filter((task) => task.status !== "done" && task.dueDate === iso).sort(byTime),
   done: state.completions.filter((entry) => entry.completedDate === iso),
+  notes: state.notes.filter((note) => note.date === iso),
 });
 
 const plannerChip = (task) => {
@@ -528,8 +529,19 @@ const plannerChip = (task) => {
 
 const doneChip = (entry) => `<span class="chip done-log" title="Completed">✓ ${escapeHtml(entry.title)}</span>`;
 
+const noteChip = (note) =>
+  `<button type="button" class="chip note-chip" data-note-date="${note.date}" title="Open this day">📝 ${escapeHtml(note.category)}: ${escapeHtml(note.text)}</button>`;
+
+const dayNote = (note) => {
+  const task = findTask(note.taskId);
+  return `<div class="day-note">
+    <span class="note-tag">${escapeHtml(note.category)}</span>${task ? ` <small>↗ ${escapeHtml(task.title)}</small>` : ""}
+    <p>${escapeHtml(note.text)}</p>
+  </div>`;
+};
+
 function renderDayDetail(iso) {
-  const { open, done } = dayItems(iso);
+  const { open, done, notes } = dayItems(iso);
   const hourOf = (task) => Math.min(22, Math.max(6, Number(task.blockStart.slice(0, 2))));
 
   const rows = Array.from({ length: 17 }, (_, i) => {
@@ -549,6 +561,8 @@ function renderDayDetail(iso) {
     ${loose.map(plannerChip).join("") || '<p class="day-empty">Nothing here.</p>'}
     <div class="day-section">Completed (${done.length})</div>
     ${done.map(doneChip).join("") || '<p class="day-empty">Nothing completed this day.</p>'}
+    <div class="day-section">Notes &amp; reflections (${notes.length})</div>
+    ${notes.map(dayNote).join("") || '<p class="day-empty">No notes written this day.</p>'}
   </div>`;
 }
 
@@ -569,8 +583,8 @@ function renderPlanner() {
   const cells = Array.from({ length: count }, (_, i) => {
     const date = addDays(start, i);
     const iso = toISO(date);
-    const { open, done } = dayItems(iso);
-    const chips = open.map(plannerChip).join("") + done.map(doneChip).join("");
+    const { open, done, notes } = dayItems(iso);
+    const chips = open.map(plannerChip).join("") + done.map(doneChip).join("") + notes.map(noteChip).join("");
     const outside = isMonth && date.getMonth() !== state.cursor.getMonth();
     const head = isMonth ? date.getDate() : date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
     return `<div class="day-cell ${iso === today ? "today" : ""} ${outside ? "outside" : ""}" data-date="${iso}">
@@ -615,6 +629,14 @@ els.plannerGrid.addEventListener("click", (event) => {
     openEditDialog(findTask(Number(chip.dataset.id)));
     return;
   }
+  const noteLink = event.target.closest(".note-chip");
+  if (noteLink) {
+    state.cursor = new Date(`${noteLink.dataset.noteDate}T00:00:00`);
+    setView("day");
+    return;
+  }
+  if (event.target.closest(".day-note")) return;
+
   const row = event.target.closest(".hour-row");
   if (row) {
     openAddDialog("todo", row.closest(".day-cell").dataset.date, row.dataset.hour);
@@ -636,10 +658,18 @@ const planningEls = {
   progress: $("planning-progress"),
   carry: $("planning-carry"),
   today: $("planning-today"),
+  notes: $("planning-notes"),
 };
 
 function renderPlanningLists() {
   const today = todayISO();
+  const yesterday = toISO(addDays(new Date(), -1));
+  planningEls.notes.innerHTML =
+    state.notes
+      .filter((note) => note.date === yesterday)
+      .map((note) => `<li><span><strong>${escapeHtml(note.category)}:</strong> ${escapeHtml(note.text)}</span></li>`)
+      .join("") || "<li>No notes from yesterday.</li>";
+
   const open = state.tasks.filter((task) => task.status !== "done" && task.dueDate);
   const carried = open.filter((task) => task.dueDate < today);
   const todays = open.filter((task) => task.dueDate === today).sort(byTime);
