@@ -15,6 +15,7 @@ TASK_FIELDS = {
     "id", "title", "description", "label", "status",
     "due_date", "started_at", "last_reminder_at", "completed_at",
     "due_time", "deadline_stage", "block_start", "block_minutes",
+    "commit_date", "commit_changes", "commit_original",
 }
 NOTE_FIELDS = {"id", "category", "text", "date", "task_id"}
 COMPLETION_FIELDS = {"task_id", "title", "label", "completed_at", "completed_date"}
@@ -97,6 +98,9 @@ def init_db():
             ("tasks", "deadline_stage", "INTEGER DEFAULT 0"),
             ("tasks", "block_start", "TEXT"),
             ("tasks", "block_minutes", "INTEGER"),
+            ("tasks", "commit_date", "TEXT"),
+            ("tasks", "commit_changes", "INTEGER DEFAULT 0"),
+            ("tasks", "commit_original", "TEXT"),
             ("notes", "task_id", "INTEGER"),
         ):
             existing = {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
@@ -158,6 +162,8 @@ def list_tasks():
 @app.post("/api/tasks")
 def create_task():
     task = clean(request.get_json(silent=True), TASK_FIELDS)
+    task.pop("commit_changes", None)   # only the server decides these two
+    task.pop("commit_original", None)
     if not task.get("title") or task.get("status") not in VALID_STATUSES:
         return jsonify(error="A title and a valid status are required"), 400
 
@@ -173,8 +179,26 @@ def update_task(task_id):
         return jsonify(error="Nothing to update"), 400
     if "status" in changes and changes["status"] not in VALID_STATUSES:
         return jsonify(error="Invalid status"), 400
-    if fetch_one("tasks", task_id) is None:
+    existing = fetch_one("tasks", task_id)
+    if existing is None:
         return jsonify(error="Task not found"), 404
+
+    # Commitment deadline: once set, it can be changed exactly one time and never removed.
+    changes.pop("commit_changes", None)
+    changes.pop("commit_original", None)
+    if "commit_date" in changes:
+        new_commit, old_commit = changes["commit_date"], existing["commit_date"]
+        if new_commit == old_commit:
+            changes.pop("commit_date")
+        elif old_commit:
+            if not new_commit:
+                return jsonify(error="A commitment deadline cannot be removed"), 400
+            if (existing["commit_changes"] or 0) >= 1:
+                return jsonify(error="The commitment deadline was already changed once"), 409
+            changes["commit_original"] = old_commit
+            changes["commit_changes"] = 1
+    if not changes:
+        return jsonify(row_to_json(existing))
 
     assignments = ", ".join(f"{column} = ?" for column in changes)
     db = get_db()

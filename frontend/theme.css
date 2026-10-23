@@ -1,81 +1,234 @@
 /* JS sets <html data-theme="light|dark">, resolving "system" itself. */
-[data-theme="dark"] { color-scheme: dark; }
+[data-theme="dark"] {
+  color-scheme: dark;
+}
 
-[data-theme="dark"] body { background: #0b1120; color: #e2e8f0; }
-[data-theme="dark"] .kanban-board { background: #111827; border-color: #1f2937; box-shadow: none; }
-[data-theme="dark"] .board-meta { border-bottom-color: #1f2937; }
+[data-theme="dark"] body {
+  background: #0b1120;
+  color: #e2e8f0;
+}
+[data-theme="dark"] .kanban-board {
+  background: #111827;
+  border-color: #1f2937;
+  box-shadow: none;
+}
+[data-theme="dark"] .board-meta {
+  border-bottom-color: #1f2937;
+}
 
 [data-theme="dark"] .kanban-column,
-[data-theme="dark"] .notes-panel { background: #0f172a; border-color: #1f2937; }
+[data-theme="dark"] .notes-panel {
+  background: #0f172a;
+  border-color: #1f2937;
+}
 
 [data-theme="dark"] .task-card,
 [data-theme="dark"] .note,
-[data-theme="dark"] .review-list li { background: #1e293b; border-color: #334155; }
+[data-theme="dark"] .review-list li {
+  background: #1e293b;
+  border-color: #334155;
+}
 
 [data-theme="dark"] .column-header h2,
 [data-theme="dark"] .task-card h3,
-[data-theme="dark"] .notes-panel h2 { color: #e2e8f0; }
+[data-theme="dark"] .notes-panel h2 {
+  color: #e2e8f0;
+}
 
 [data-theme="dark"] .task-card > p,
 [data-theme="dark"] .note p,
-[data-theme="dark"] .review-summary { color: #94a3b8; }
+[data-theme="dark"] .review-summary {
+  color: #94a3b8;
+}
 
 [data-theme="dark"] .task-count,
-[data-theme="dark"] .column-header > button { background: #1e293b; color: #94a3b8; }
+[data-theme="dark"] .column-header > button {
+  background: #1e293b;
+  color: #94a3b8;
+}
 
-[data-theme="dark"] dialog { background: #111827; color: #e2e8f0; border-color: #334155; }
+[data-theme="dark"] dialog {
+  background: #111827;
+  color: #e2e8f0;
+  border-color: #334155;
+}
 
 [data-theme="dark"] #task-form input,
 [data-theme="dark"] #task-form select,
 [data-theme="dark"] #note-form select,
 [data-theme="dark"] #note-form textarea,
-[data-theme="dark"] #review-form textarea { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+[data-theme="dark"] #review-form textarea {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-color: #334155;
+}
 
 [data-theme="dark"] .ghost-btn,
-[data-theme="dark"] .reminder-setting select { background: #1e293b; border-color: #334155; color: #cbd5e1; }
-[data-theme="dark"] .reminder-setting { color: #94a3b8; }
+[data-theme="dark"] .reminder-setting select {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+[data-theme="dark"] .reminder-setting {
+  color: #94a3b8;
+}
 
-[data-theme="dark"] #cancel-btn { background: #334155; color: #e2e8f0; }
-[data-theme="dark"] .action-btn { background: #312e81; color: #c7d2fe; }
-[data-theme="dark"] .action-btn.secondary { background: #334155; color: #cbd5e1; }
+[data-theme="dark"] #cancel-btn {
+  background: #334155;
+  color: #e2e8f0;
+}
+[data-theme="dark"] .action-btn {
+  background: #312e81;
+  color: #c7d2fe;
+}
+[data-theme="dark"] .action-btn.secondary {
+  background: #334155;
+  color: #cbd5e1;
+}
 
-[data-theme="dark"] .toast { background: #e2e8f0; color: #0f172a; }
+[data-theme="dark"] .toast {
+  background: #e2e8f0;
+  color: #0f172a;
+}
 
 /* Planner */
-[data-theme="dark"] .view-btn { background: #1e293b; border-color: #334155; color: #94a3b8; }
-[data-theme="dark"] .view-btn.active { background: #6366f1; border-color: #6366f1; color: #ffffff; }
-[data-theme="dark"] .day-cell { background: #0f172a; border-color: #1f2937; }
-[data-theme="dark"] .day-cell:hover { border-color: #4f46e5; }
-[data-theme="dark"] .day-head { color: #94a3b8; }
-[data-theme="dark"] .chip.todo { background: #2e1065; color: #c4b5fd; }
-[data-theme="dark"] .chip.progress { background: #431407; color: #fdba74; }
-[data-theme="dark"] .chip.done { background: #052e16; color: #86efac; }
+[data-theme="dark"] .view-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}
+[data-theme="dark"] .view-btn.active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #ffffff;
+}
+[data-theme="dark"] .day-cell {
+  background: #0f172a;
+  border-color: #1f2937;
+}
+[data-theme="dark"] .day-cell:hover {
+  border-color: #4f46e5;
+}
+[data-theme="dark"] .day-head {
+  color: #94a3b8;
+}
+[data-theme="dark"] .chip.todo {
+  background: #2e1065;
+  color: #c4b5fd;
+}
+[data-theme="dark"] .chip.progress {
+  background: #431407;
+  color: #fdba74;
+}
+[data-theme="dark"] .chip.done {
+  background: #052e16;
+  color: #86efac;
+}
 
 /* Notes sidebar and deadline field */
-[data-theme="dark"] .field-label { color: #94a3b8; }
-[data-theme="dark"] .note-btn { background: #422006; color: #fde68a; }
+[data-theme="dark"] .field-label {
+  color: #94a3b8;
+}
+[data-theme="dark"] .note-btn {
+  background: #422006;
+  color: #fde68a;
+}
 [data-theme="dark"] .note-filter,
-[data-theme="dark"] .note-task { background: #1e1b4b; color: #c7d2fe; }
+[data-theme="dark"] .note-task {
+  background: #1e1b4b;
+  color: #c7d2fe;
+}
 
 /* Time blocks and planning mode */
-[data-theme="dark"] .hour-row { border-top-color: #1f2937; }
-[data-theme="dark"] .hour-row:hover { background: #1e1b4b; }
-[data-theme="dark"] .chip.done-log { background: #052e16; color: #86efac; }
-[data-theme="dark"] .block-tag { color: #a5b4fc; }
+[data-theme="dark"] .hour-row {
+  border-top-color: #1f2937;
+}
+[data-theme="dark"] .hour-row:hover {
+  background: #1e1b4b;
+}
+[data-theme="dark"] .chip.done-log {
+  background: #052e16;
+  color: #86efac;
+}
+[data-theme="dark"] .block-tag {
+  color: #a5b4fc;
+}
 [data-theme="dark"] #planning-dialog h3,
-[data-theme="dark"] .day-section { color: #94a3b8; }
-[data-theme="dark"] #planning-session textarea { background: #0f172a; color: #e2e8f0; border-color: #334155; }
-[data-theme="dark"] .planning-bar { background: #1f2937; }
+[data-theme="dark"] .day-section {
+  color: #94a3b8;
+}
+[data-theme="dark"] #planning-session textarea {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+[data-theme="dark"] .planning-bar {
+  background: #1f2937;
+}
 
-[data-theme="dark"] .chip.note-chip { background: #422006; color: #fde68a; }
-[data-theme="dark"] .day-note { background: #1c1917; }
-[data-theme="dark"] .day-note p { color: #cbd5e1; }
+[data-theme="dark"] .chip.note-chip {
+  background: #422006;
+  color: #fde68a;
+}
+[data-theme="dark"] .day-note {
+  background: #1c1917;
+}
+[data-theme="dark"] .day-note p {
+  color: #cbd5e1;
+}
 
 /* Delayed tasks and year view */
-[data-theme="dark"] .delay-tag { background: #450a0a; color: #fca5a5; }
-[data-theme="dark"] .delay-tag.soft { background: #431407; color: #fdba74; }
-[data-theme="dark"] .late-count { color: #f87171; }
-[data-theme="dark"] .chip.delay-log { background: #450a0a; color: #fca5a5; }
-[data-theme="dark"] .day-delay { background: #2a1010; color: #fca5a5; }
-[data-theme="dark"] .year-month { background: #0f172a; border-color: #1f2937; }
-[data-theme="dark"] .year-month strong { color: #e2e8f0; }
+
+[data-theme="dark"] .delay-tag {
+  background: #450a0a;
+  color: #fca5a5;
+}
+[data-theme="dark"] .delay-tag.soft {
+  background: #431407;
+  color: #fdba74;
+}
+[data-theme="dark"] .late-count {
+  color: #f87171;
+}
+[data-theme="dark"] .chip.delay-log {
+  background: #450a0a;
+  color: #fca5a5;
+}
+[data-theme="dark"] .day-delay {
+  background: #2a1010;
+  color: #fca5a5;
+}
+[data-theme="dark"] .year-month {
+  background: #0f172a;
+  border-color: #1f2937;
+}
+[data-theme="dark"] .year-month strong {
+  color: #e2e8f0;
+}
+
+/* Commitment deadlines */
+[data-theme="dark"] .commit-line {
+  background: #2a1010;
+  color: #fca5a5;
+}
+[data-theme="dark"] .commit-line.soon {
+  background: #dc2626;
+  color: #ffffff;
+}
+[data-theme="dark"] .commit-line.met {
+  background: #052e16;
+  color: #86efac;
+}
+[data-theme="dark"] .chip.commit {
+  background: #450a0a;
+  color: #fca5a5;
+}
+[data-theme="dark"] .chip.commit.met {
+  background: #052e16;
+  color: #86efac;
+}
+[data-theme="dark"] .day-cell.commit-near,
+[data-theme="dark"] .day-upcoming {
+  background: #2a1010;
+  color: #fca5a5;
+}

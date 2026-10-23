@@ -44,6 +44,7 @@
       <div class="board-meta">
         <span id="today-label" class="board-info"></span>
         <div class="board-info">
+          <span class="late-count">🔴 <span id="commit-count">0</span> commitments due within 7 days</span>
           <span class="late-count">⏳ <span id="delayed-count">0</span> delayed</span>
           <span>▣ <span id="total-count">0</span> Tasks</span>
         </div>
@@ -149,6 +150,11 @@
         <label class="field-label">
           Deadline time (optional)
           <input type="time" id="task-time" />
+        </label>
+        <label class="field-label">
+          Commitment deadline (optional)
+          <input type="date" id="task-commit" />
+          <small id="commit-hint" class="commit-hint"></small>
         </label>
         <label class="field-label">
           Time block (optional)

@@ -19,8 +19,16 @@ const state = {
 const $ = (id) => document.getElementById(id);
 
 const els = {
-  lists: { todo: $("list-todo"), progress: $("list-progress"), done: $("list-done") },
-  counts: { todo: $("count-todo"), progress: $("count-progress"), done: $("count-done") },
+  lists: {
+    todo: $("list-todo"),
+    progress: $("list-progress"),
+    done: $("list-done"),
+  },
+  counts: {
+    todo: $("count-todo"),
+    progress: $("count-progress"),
+    done: $("count-done"),
+  },
   total: $("total-count"),
   today: $("today-label"),
   board: document.querySelector(".kanban-columns"),
@@ -30,6 +38,7 @@ const els = {
   theme: $("theme-select"),
   noteTask: $("note-task"),
   delayed: $("delayed-count"),
+  commitCount: $("commit-count"),
   noteFilter: $("note-filter"),
   planner: $("planner"),
   plannerGrid: $("planner-grid"),
@@ -46,7 +55,13 @@ const els = {
 /* ---------- Helpers ---------- */
 
 const escapeHtml = (text) =>
-  String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  String(text).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
 
 const toISO = (date) => date.toLocaleDateString("en-CA"); // YYYY-MM-DD in local time
 const todayISO = () => toISO(new Date());
@@ -56,7 +71,12 @@ const tomorrowISO = () => {
   return toISO(d);
 };
 const formatDate = (iso) =>
-  iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "No date";
+  iso
+    ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+      })
+    : "No date";
 
 const findTask = (id) => state.tasks.find((task) => task.id === id);
 
@@ -85,16 +105,39 @@ function findOverlap(candidate) {
         other.dueDate === candidate.dueDate &&
         other.blockStart &&
         toMinutes(other.blockStart) < end &&
-        start < toMinutes(other.blockStart) + (other.blockMinutes || 30)
+        start < toMinutes(other.blockStart) + (other.blockMinutes || 30),
     ) || null
   );
+}
+
+/* Commitment deadline: the date you promised yourself. It can be changed only once. */
+const daysBetween = (fromIso, toIso) =>
+  Math.round(
+    (new Date(`${toIso}T00:00:00`) - new Date(`${fromIso}T00:00:00`)) /
+      86400000,
+  );
+const daysUntil = (iso) => daysBetween(todayISO(), iso);
+const isCommitSoon = (task) =>
+  Boolean(task.commitDate) &&
+  task.status !== "done" &&
+  daysUntil(task.commitDate) <= 7;
+
+function commitLabel(task) {
+  const days = daysUntil(task.commitDate);
+  if (days < 0) return `passed ${-days} day${days === -1 ? "" : "s"} ago`;
+  if (days === 0) return "due today";
+  return `${days} day${days === 1 ? "" : "s"} left`;
 }
 
 /* Delay history: logged whenever an open task is moved to a later date or time */
 function recordDelay(task, newDate, newTime) {
   if (!task.dueDate || task.status === "done") return;
   const movedToLaterDay = newDate > task.dueDate;
-  const movedToLaterTime = newDate === task.dueDate && task.dueTime && newTime && newTime > task.dueTime;
+  const movedToLaterTime =
+    newDate === task.dueDate &&
+    task.dueTime &&
+    newTime &&
+    newTime > task.dueTime;
   if (!movedToLaterDay && !movedToLaterTime) return;
 
   const entry = {
@@ -117,7 +160,9 @@ function syncCompletion(task) {
   const existing = state.completions.find((entry) => entry.taskId === task.id);
 
   if (task.status === "done" && !existing) {
-    const when = task.completedAt || (task.dueDate ? new Date(`${task.dueDate}T12:00`).getTime() : Date.now());
+    const when =
+      task.completedAt ||
+      (task.dueDate ? new Date(`${task.dueDate}T12:00`).getTime() : Date.now());
     const entry = {
       taskId: task.id,
       title: task.title,
@@ -128,15 +173,22 @@ function syncCompletion(task) {
     state.completions.push(entry);
     sync(api.saveCompletion(entry));
   } else if (task.status !== "done" && existing) {
-    state.completions = state.completions.filter((entry) => entry.taskId !== task.id);
+    state.completions = state.completions.filter(
+      (entry) => entry.taskId !== task.id,
+    );
     sync(api.deleteCompletion(task.id));
   }
 }
 
 /* A task may have a date and an optional deadline time */
-const deadlineOf = (task) => (task.dueDate && task.dueTime ? new Date(`${task.dueDate}T${task.dueTime}`) : null);
+const deadlineOf = (task) =>
+  task.dueDate && task.dueTime
+    ? new Date(`${task.dueDate}T${task.dueTime}`)
+    : null;
 const formatDeadline = (task) =>
-  task.dueTime ? `${formatDate(task.dueDate)} · ${task.dueTime}` : formatDate(task.dueDate);
+  task.dueTime
+    ? `${formatDate(task.dueDate)} · ${task.dueTime}`
+    : formatDate(task.dueDate);
 
 function isPastDeadline(task) {
   if (!task.dueDate) return false;
@@ -170,32 +222,64 @@ const ACTION_BUTTONS = {
 };
 
 const ACTIONS = {
-  start: (task) => Object.assign(task, { status: "progress", startedAt: Date.now(), lastReminderAt: null }),
-  complete: (task) => Object.assign(task, { status: "done", completedAt: Date.now() }),
+  start: (task) =>
+    Object.assign(task, {
+      status: "progress",
+      startedAt: Date.now(),
+      lastReminderAt: null,
+    }),
+  complete: (task) =>
+    Object.assign(task, { status: "done", completedAt: Date.now() }),
   back: (task) => Object.assign(task, { status: "todo", startedAt: null }),
-  reopen: (task) => Object.assign(task, { status: "progress", startedAt: Date.now(), lastReminderAt: null, completedAt: null }),
+  reopen: (task) =>
+    Object.assign(task, {
+      status: "progress",
+      startedAt: Date.now(),
+      lastReminderAt: null,
+      completedAt: null,
+    }),
 };
 
 function createCard(task) {
   const isDone = task.status === "done";
   const isOverdue = !isDone && isPastDeadline(task);
-  const noteCount = state.notes.filter((note) => note.taskId === task.id).length;
-  const delayCount = state.delays.filter((delay) => delay.taskId === task.id).length;
+  const noteCount = state.notes.filter(
+    (note) => note.taskId === task.id,
+  ).length;
+  const delayCount = state.delays.filter(
+    (delay) => delay.taskId === task.id,
+  ).length;
   const tags =
-    (isOverdue ? `<span class="delay-tag">⏳ Delayed · complete it</span>` : "") +
-    (delayCount ? `<span class="delay-tag soft">↻ Rescheduled ×${delayCount}</span>` : "");
-    const footer = isDone
+    (isOverdue
+      ? `<span class="delay-tag">⏳ Delayed · complete it</span>`
+      : "") +
+    (delayCount
+      ? `<span class="delay-tag soft">↻ Rescheduled ×${delayCount}</span>`
+      : "");
+
+  let commit = "";
+  if (task.commitDate) {
+    if (isDone) {
+      const met =
+        toISO(new Date(task.completedAt || Date.now())) <= task.commitDate;
+      commit = `<div class="commit-line ${met ? "met" : "missed"}">${met ? "✓ Commitment met" : "✗ Commitment missed"} (${formatDate(task.commitDate)})</div>`;
+    } else {
+      commit = `<div class="commit-line ${isCommitSoon(task) ? "soon" : ""}">🔴 Commitment ${formatDate(task.commitDate)} · ${commitLabel(task)}${task.commitChanges ? " · changed once" : ""}</div>`;
+    }
+  }
+  const footer = isDone
     ? `<span class="done-date">✓ Completed</span>`
     : `<span class="due-date ${isOverdue ? "overdue" : ""}">◷ ${formatDeadline(task)}</span>${task.blockStart ? `<span class="block-tag">▦ ${blockRange(task)}</span>` : ""}`;
 
   return `
-    <article class="task-card ${isDone ? "completed-card" : ""}" data-id="${task.id}">
+    <article class="task-card ${isDone ? "completed-card" : ""} ${isCommitSoon(task) ? "commit-soon" : ""}" data-id="${task.id}">
       <div class="task-top">
         <span class="task-label ${LABEL_CLASS[task.status]}">${escapeHtml(task.label)}</span>
         <button type="button" class="menu-btn" aria-label="Edit task">•••</button>
       </div>
       <h3>${escapeHtml(task.title)}</h3>
       ${tags ? `<div class="tag-row">${tags}</div>` : ""}
+      ${commit}
       <p>${escapeHtml(task.description)}</p>
       <div class="task-footer">${footer}</div>
       <div class="card-actions">${ACTION_BUTTONS[task.status]}<button type="button" class="note-btn" title="Notes for this task">📝${noteCount ? ` ${noteCount}` : ""}</button></div>
@@ -211,13 +295,27 @@ function render() {
     els.counts[status].textContent = cards[status].length;
   });
   els.total.textContent = state.tasks.length;
-  els.delayed.textContent = state.tasks.filter((task) => task.status !== "done" && isPastDeadline(task)).length;
+  els.delayed.textContent = state.tasks.filter(
+    (task) => task.status !== "done" && isPastDeadline(task),
+  ).length;
+  els.commitCount.textContent = state.tasks.filter(isCommitSoon).length;
   renderNotes();
   if (planningEls.dialog.open) renderPlanningLists();
   if (state.view !== "board") renderPlanner();
 }
 
 /* ---------- Add / edit / delete ---------- */
+
+function setCommitField(task) {
+  const input = $("task-commit");
+  input.value = task?.commitDate || "";
+  input.disabled = Boolean(task?.commitDate && task.commitChanges >= 1);
+  $("commit-hint").textContent = !task?.commitDate
+    ? "Once set, it can be changed only one time."
+    : task.commitChanges >= 1
+      ? `Locked: already changed once (it was ${formatDate(task.commitOriginal)}).`
+      : "You can change this one more time.";
+}
 
 function openAddDialog(status, date = todayISO(), blockStart = "") {
   state.editingId = null;
@@ -228,6 +326,7 @@ function openAddDialog(status, date = todayISO(), blockStart = "") {
   $("task-status").value = status;
   $("task-date").value = date;
   $("task-time").value = "";
+  setCommitField(null);
   $("task-block-start").value = blockStart;
   $("task-block-minutes").value = blockStart ? "30" : "";
   els.taskDialog.showModal();
@@ -244,8 +343,11 @@ function openEditDialog(task) {
   $("task-status").value = task.status;
   $("task-date").value = task.dueDate;
   $("task-time").value = task.dueTime || "";
+  setCommitField(task);
   $("task-block-start").value = task.blockStart || "";
-  $("task-block-minutes").value = task.blockMinutes ? String(task.blockMinutes) : "";
+  $("task-block-minutes").value = task.blockMinutes
+    ? String(task.blockMinutes)
+    : "";
   els.taskDialog.showModal();
 }
 
@@ -258,7 +360,10 @@ function readTaskForm() {
     dueDate: $("task-date").value,
     dueTime: $("task-time").value || null,
     blockStart: $("task-block-start").value || null,
-    blockMinutes: $("task-block-start").value ? Number($("task-block-minutes").value) || 30 : null,
+    blockMinutes: $("task-block-start").value
+      ? Number($("task-block-minutes").value) || 30
+      : null,
+    commitDate: $("task-commit").value || null,
   };
 }
 
@@ -266,17 +371,58 @@ els.taskForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const values = readTaskForm();
   const clash = findOverlap({ id: state.editingId, ...values });
-  if (clash && !confirm(`This time block overlaps with "${clash.title}" (${blockRange(clash)}). Save anyway?`)) return;
-  const task = state.editingId === null ? { id: Date.now() } : findTask(state.editingId);
+  if (
+    clash &&
+    !confirm(
+      `This time block overlaps with "${clash.title}" (${blockRange(clash)}). Save anyway?`,
+    )
+  )
+    return;
+  const task =
+    state.editingId === null ? { id: Date.now() } : findTask(state.editingId);
 
-  if (state.editingId !== null && values.status !== "done") recordDelay(task, values.dueDate, values.dueTime);
-  if (task.dueDate !== values.dueDate || task.dueTime !== values.dueTime) task.deadlineStage = 0;
+  if (values.commitDate && values.dueDate > values.commitDate) {
+    alert(
+      "The due date is after your commitment deadline. Choose an earlier due date or a later commitment.",
+    );
+    return;
+  }
+  if (state.editingId !== null && task.commitDate) {
+    if (!values.commitDate || values.commitDate === task.commitDate) {
+      values.commitDate = task.commitDate; // unchanged, and it can never be removed
+    } else if ((task.commitChanges || 0) >= 1) {
+      alert(
+        "This commitment deadline was already changed once and is now locked.",
+      );
+      return;
+    } else if (
+      !confirm(
+        `A commitment deadline can be changed only once. Move it from ${formatDate(task.commitDate)} to ${formatDate(values.commitDate)}?`,
+      )
+    ) {
+      return;
+    } else {
+      values.commitOriginal = task.commitDate;
+      values.commitChanges = 1;
+    }
+  }
+
+  if (state.editingId !== null && values.status !== "done")
+    recordDelay(task, values.dueDate, values.dueTime);
+  if (task.dueDate !== values.dueDate || task.dueTime !== values.dueTime)
+    task.deadlineStage = 0;
   Object.assign(task, values);
-  if (task.status === "progress" && !task.startedAt) task.startedAt = Date.now();
-  if (task.status === "done" && !task.completedAt) task.completedAt = Date.now();
+  if (task.status === "progress" && !task.startedAt)
+    task.startedAt = Date.now();
+  if (task.status === "done" && !task.completedAt)
+    task.completedAt = Date.now();
   syncCompletion(task);
   if (state.editingId === null) state.tasks.push(task);
-  sync(state.editingId === null ? api.createTask(task) : api.updateTask(task.id, task));
+  sync(
+    state.editingId === null
+      ? api.createTask(task)
+      : api.updateTask(task.id, task),
+  );
 
   persistTasks();
   els.taskDialog.close();
@@ -351,12 +497,13 @@ function checkReminders() {
       const lastPing = task.lastReminderAt || task.startedAt;
       if (now - lastPing >= minutes * 60000) {
         const elapsed = Math.round((now - task.startedAt) / 60000);
-        notify(`"${task.title}" has been in progress for ${elapsed} min. Still on it?`);
+        notify(
+          `"${task.title}" has been in progress for ${elapsed} min. Still on it?`,
+        );
         task.lastReminderAt = now;
         sync(api.updateTask(task.id, { lastReminderAt: now }));
       }
     });
-
 }
 
 /* Deadline alerts: once 15 minutes before, once when the time has passed */
@@ -373,7 +520,9 @@ function checkDeadlines() {
         notify(`"${task.title}" is past its deadline (${task.dueTime}).`);
         task.deadlineStage = 2;
       } else if (minutesLeft > 0 && minutesLeft <= 15 && stage < 1) {
-        notify(`"${task.title}" is due in ${Math.ceil(minutesLeft)} min (${task.dueTime}).`);
+        notify(
+          `"${task.title}" is due in ${Math.ceil(minutesLeft)} min (${task.dueTime}).`,
+        );
         task.deadlineStage = 1;
       } else {
         return;
@@ -398,17 +547,26 @@ function renderNoteTaskOptions() {
   const current = els.noteTask.value;
   els.noteTask.innerHTML =
     `<option value="">Attach to task: none</option>` +
-    state.tasks.map((task) => `<option value="${task.id}">${escapeHtml(task.title)}</option>`).join("");
+    state.tasks
+      .map(
+        (task) =>
+          `<option value="${task.id}">${escapeHtml(task.title)}</option>`,
+      )
+      .join("");
   els.noteTask.value = current;
 }
 
 function renderNotes() {
   const filterTask = findTask(state.noteFilter);
   if (!filterTask) state.noteFilter = null;
-  const visible = filterTask ? state.notes.filter((note) => note.taskId === filterTask.id) : state.notes;
+  const visible = filterTask
+    ? state.notes.filter((note) => note.taskId === filterTask.id)
+    : state.notes;
 
   els.noteFilter.hidden = !filterTask;
-  els.noteFilter.firstElementChild.textContent = filterTask ? `Notes for: ${filterTask.title}` : "";
+  els.noteFilter.firstElementChild.textContent = filterTask
+    ? `Notes for: ${filterTask.title}`
+    : "";
   renderNoteTaskOptions();
 
   els.notesList.innerHTML =
@@ -479,8 +637,12 @@ els.notesList.addEventListener("click", (event) => {
 
 function renderReview() {
   const today = todayISO();
-  const doneToday = state.completions.filter((entry) => entry.completedDate === today).length;
-  const open = state.tasks.filter((task) => task.status !== "done" && task.dueDate && task.dueDate <= today);
+  const doneToday = state.completions.filter(
+    (entry) => entry.completedDate === today,
+  ).length;
+  const open = state.tasks.filter(
+    (task) => task.status !== "done" && task.dueDate && task.dueDate <= today,
+  );
 
   els.reviewSummary.textContent = `${doneToday} completed today · ${open.length} still open`;
   els.reviewList.innerHTML =
@@ -490,7 +652,7 @@ function renderReview() {
       <li>
         <span>${escapeHtml(task.title)}</span>
         <button type="button" class="action-btn" data-move="${task.id}">Move to tomorrow</button>
-      </li>`
+      </li>`,
       )
       .join("") || "<li>Nothing left over for today.</li>";
 }
@@ -530,30 +692,47 @@ const addDays = (date, days) => {
   return d;
 };
 const startOfWeek = (date) => addDays(date, -((date.getDay() + 6) % 7)); // weeks start on Monday
-const shortDate = (date) => date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+const shortDate = (date) =>
+  date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
 function plannerRange() {
   const cursor = state.cursor;
-  if (state.view === "year") return { start: cursor, count: 0, title: String(cursor.getFullYear()) };
+  if (state.view === "year")
+    return { start: cursor, count: 0, title: String(cursor.getFullYear()) };
   if (state.view === "day") {
-    const title = cursor.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    const title = cursor.toLocaleDateString("en-GB", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
     return { start: cursor, count: 1, title };
   }
   if (state.view === "week") {
     const start = startOfWeek(cursor);
     const end = addDays(start, 6);
-    return { start, count: 7, title: `${shortDate(start)} – ${shortDate(end)} ${end.getFullYear()}` };
+    return {
+      start,
+      count: 7,
+      title: `${shortDate(start)} – ${shortDate(end)} ${end.getFullYear()}`,
+    };
   }
   const firstOfMonth = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
-  const title = cursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const title = cursor.toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+  });
   return { start: startOfWeek(firstOfMonth), count: 42, title };
 }
 
 const dayItems = (iso) => ({
-  open: state.tasks.filter((task) => task.status !== "done" && task.dueDate === iso).sort(byTime),
+  open: state.tasks
+    .filter((task) => task.status !== "done" && task.dueDate === iso)
+    .sort(byTime),
   done: state.completions.filter((entry) => entry.completedDate === iso),
   notes: state.notes.filter((note) => note.date === iso),
   delayed: state.delays.filter((delay) => delay.fromDate === iso),
+  commits: state.tasks.filter((task) => task.commitDate === iso),
 });
 
 const plannerChip = (task) => {
@@ -562,12 +741,17 @@ const plannerChip = (task) => {
   return `<button type="button" class="chip ${task.status} ${late ? "late" : ""}" data-id="${task.id}">${late ? "⏳ " : ""}${time ? `${time} ` : ""}${escapeHtml(task.title)}</button>`;
 };
 
-const doneChip = (entry) => `<span class="chip done-log" title="Completed">✓ ${escapeHtml(entry.title)}</span>`;
+const doneChip = (entry) =>
+  `<span class="chip done-log" title="Completed">✓ ${escapeHtml(entry.title)}</span>`;
+
+const commitChip = (task) =>
+  `<button type="button" class="chip commit ${task.status === "done" ? "met" : ""}" data-id="${task.id}">${task.status === "done" ? "✓" : "🔴"} Deadline: ${escapeHtml(task.title)}</button>`;
 
 const delayChip = (delay) =>
   `<span class="chip delay-log" title="Delayed from ${delay.fromDate}">⏳ ${escapeHtml(delay.title)} → ${formatDate(delay.toDate)}</span>`;
 
-const delayLine = (delay) => `<div class="day-delay">⏳ <strong>${escapeHtml(delay.title)}</strong>: planned for ${formatDate(delay.fromDate)}${delay.fromTime ? ` ${delay.fromTime}` : ""}, moved to ${formatDate(delay.toDate)}${delay.toTime ? ` ${delay.toTime}` : ""} (rescheduled on ${formatDate(delay.createdDate)})</div>`;
+const delayLine = (delay) =>
+  `<div class="day-delay">⏳ <strong>${escapeHtml(delay.title)}</strong>: planned for ${formatDate(delay.fromDate)}${delay.fromTime ? ` ${delay.fromTime}` : ""}, moved to ${formatDate(delay.toDate)}${delay.toTime ? ` ${delay.toTime}` : ""} (rescheduled on ${formatDate(delay.createdDate)})</div>`;
 
 const noteChip = (note) =>
   `<button type="button" class="chip note-chip" data-note-date="${note.date}" title="Open this day">📝 ${escapeHtml(note.category)}: ${escapeHtml(note.text)}</button>`;
@@ -581,21 +765,35 @@ const dayNote = (note) => {
 };
 
 function renderDayDetail(iso) {
-  const { open, done, notes, delayed } = dayItems(iso);
-  const hourOf = (task) => Math.min(22, Math.max(6, Number(task.blockStart.slice(0, 2))));
+  const { open, done, notes, delayed, commits } = dayItems(iso);
+  const hourOf = (task) =>
+    Math.min(22, Math.max(6, Number(task.blockStart.slice(0, 2))));
 
   const rows = Array.from({ length: 17 }, (_, i) => {
     const hour = i + 6;
     const label = `${pad(hour)}:00`;
     const blocks = open
       .filter((task) => task.blockStart && hourOf(task) === hour)
-      .map((task) => `<button type="button" class="chip block ${task.status}" data-id="${task.id}">${isPastDeadline(task) ? "⏳ " : ""}${blockRange(task)} · ${escapeHtml(task.title)}</button>`)
+      .map(
+        (task) =>
+          `<button type="button" class="chip block ${task.status}" data-id="${task.id}">${isPastDeadline(task) ? "⏳ " : ""}${blockRange(task)} · ${escapeHtml(task.title)}</button>`,
+      )
       .join("");
     return `<div class="hour-row" data-hour="${label}"><span class="hour-label">${label}</span><div class="hour-slot">${blocks}</div></div>`;
   }).join("");
 
   const loose = open.filter((task) => !task.blockStart);
+  const upcoming = state.tasks.filter(
+    (task) =>
+      task.commitDate &&
+      task.status !== "done" &&
+      task.commitDate > iso &&
+      daysBetween(iso, task.commitDate) <= 7,
+  );
   return `<div class="day-cell day-detail" data-date="${iso}">
+    <div class="day-section">Commitment deadlines (${commits.length})</div>
+    ${commits.map(commitChip).join("") || '<p class="day-empty">No commitment deadline on this day.</p>'}
+    ${upcoming.map((task) => `<p class="day-upcoming">🔴 <strong>${escapeHtml(task.title)}</strong>: deadline ${formatDate(task.commitDate)}, ${daysBetween(iso, task.commitDate)} day${daysBetween(iso, task.commitDate) === 1 ? "" : "s"} away</p>`).join("")}
     <div class="day-section">Time blocks (click an hour to add one)</div>${rows}
     <div class="day-section">No time block (${loose.length})</div>
     ${loose.map(plannerChip).join("") || '<p class="day-empty">Nothing here.</p>'}
@@ -612,15 +810,29 @@ function renderYear(year) {
   return Array.from({ length: 12 }, (_, month) => {
     const prefix = `${year}-${pad(month + 1)}`;
     const inMonth = (iso) => Boolean(iso) && iso.startsWith(prefix);
-    const completed = state.completions.filter((entry) => inMonth(entry.completedDate)).length;
-    const stillLate = state.tasks.filter((task) => task.status !== "done" && isPastDeadline(task) && inMonth(task.dueDate)).length;
-    const delayed = state.delays.filter((delay) => inMonth(delay.fromDate)).length + stillLate;
+    const completed = state.completions.filter((entry) =>
+      inMonth(entry.completedDate),
+    ).length;
+    const stillLate = state.tasks.filter(
+      (task) =>
+        task.status !== "done" && isPastDeadline(task) && inMonth(task.dueDate),
+    ).length;
+    const delayed =
+      state.delays.filter((delay) => inMonth(delay.fromDate)).length +
+      stillLate;
     const notes = state.notes.filter((note) => inMonth(note.date)).length;
-    const name = new Date(year, month, 1).toLocaleDateString("en-GB", { month: "long" });
-    return `<button type="button" class="year-month" data-month="${month}">
+    const commitments = state.tasks.filter(
+      (task) =>
+        task.commitDate && task.status !== "done" && inMonth(task.commitDate),
+    ).length;
+    const name = new Date(year, month, 1).toLocaleDateString("en-GB", {
+      month: "long",
+    });
+    return `<button type="button" class="year-month ${commitments ? "has-commit" : ""}" data-month="${month}">
       <strong>${name}</strong>
       <span class="stat done">✓ ${completed} completed</span>
       <span class="stat late">⏳ ${delayed} delayed</span>
+      <span class="stat late">🔴 ${commitments} commitment deadline${commitments === 1 ? "" : "s"}</span>
       <span class="stat">📝 ${notes} notes</span>
     </button>`;
   }).join("");
@@ -644,16 +856,25 @@ function renderPlanner() {
     return;
   }
 
-  const labels = isMonth ? WEEKDAYS.map((day) => `<div class="weekday-label">${day}</div>`).join("") : "";
+  const labels = isMonth
+    ? WEEKDAYS.map((day) => `<div class="weekday-label">${day}</div>`).join("")
+    : "";
   const cells = Array.from({ length: count }, (_, i) => {
     const date = addDays(start, i);
     const iso = toISO(date);
-    const { open, done, notes, delayed } = dayItems(iso);
+    const { open, done, notes, delayed, commits } = dayItems(iso);
+    const openCommit = commits.some((task) => task.status !== "done");
     const chips =
-      open.map(plannerChip).join("") + done.map(doneChip).join("") + delayed.map(delayChip).join("") + notes.map(noteChip).join("");
+      commits.map(commitChip).join("") +
+      open.map(plannerChip).join("") +
+      done.map(doneChip).join("") +
+      delayed.map(delayChip).join("") +
+      notes.map(noteChip).join("");
     const outside = isMonth && date.getMonth() !== state.cursor.getMonth();
-    const head = isMonth ? date.getDate() : date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
-    return `<div class="day-cell ${iso === today ? "today" : ""} ${outside ? "outside" : ""}" data-date="${iso}">
+    const head = isMonth
+      ? date.getDate()
+      : date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
+    return `<div class="day-cell ${iso === today ? "today" : ""} ${outside ? "outside" : ""} ${openCommit ? "has-commit" : ""} ${openCommit && daysUntil(iso) <= 7 ? "commit-near" : ""}" data-date="${iso}">
       <div class="day-head">${head}</div>${chips}</div>`;
   }).join("");
 
@@ -662,7 +883,11 @@ function renderPlanner() {
 
 function setView(view) {
   state.view = view;
-  document.querySelectorAll(".view-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.view === view));
+  document
+    .querySelectorAll(".view-btn")
+    .forEach((btn) =>
+      btn.classList.toggle("active", btn.dataset.view === view),
+    );
   els.board.hidden = view !== "board";
   els.planner.hidden = view === "board";
   if (view !== "board") renderPlanner();
@@ -673,7 +898,11 @@ function movePlanner(direction) {
   if (state.view === "year") {
     state.cursor = new Date(cursor.getFullYear() + direction, 0, 1);
   } else if (state.view === "month") {
-    state.cursor = new Date(cursor.getFullYear(), cursor.getMonth() + direction, 1);
+    state.cursor = new Date(
+      cursor.getFullYear(),
+      cursor.getMonth() + direction,
+      1,
+    );
   } else {
     state.cursor = addDays(cursor, direction * (state.view === "week" ? 7 : 1));
   }
@@ -694,7 +923,11 @@ $("planner-today").addEventListener("click", () => {
 els.plannerGrid.addEventListener("click", (event) => {
   const monthButton = event.target.closest(".year-month");
   if (monthButton) {
-    state.cursor = new Date(state.cursor.getFullYear(), Number(monthButton.dataset.month), 1);
+    state.cursor = new Date(
+      state.cursor.getFullYear(),
+      Number(monthButton.dataset.month),
+      1,
+    );
     setView("month");
     return;
   }
@@ -714,7 +947,11 @@ els.plannerGrid.addEventListener("click", (event) => {
 
   const row = event.target.closest(".hour-row");
   if (row) {
-    openAddDialog("todo", row.closest(".day-cell").dataset.date, row.dataset.hour);
+    openAddDialog(
+      "todo",
+      row.closest(".day-cell").dataset.date,
+      row.dataset.hour,
+    );
     return;
   }
 
@@ -742,22 +979,34 @@ function renderPlanningLists() {
   planningEls.notes.innerHTML =
     state.notes
       .filter((note) => note.date === yesterday)
-      .map((note) => `<li><span><strong>${escapeHtml(note.category)}:</strong> ${escapeHtml(note.text)}</span></li>`)
+      .map(
+        (note) =>
+          `<li><span><strong>${escapeHtml(note.category)}:</strong> ${escapeHtml(note.text)}</span></li>`,
+      )
       .join("") || "<li>No notes from yesterday.</li>";
 
-  const open = state.tasks.filter((task) => task.status !== "done" && task.dueDate);
+  const open = state.tasks.filter(
+    (task) => task.status !== "done" && task.dueDate,
+  );
   const carried = open.filter((task) => task.dueDate < today);
   const todays = open.filter((task) => task.dueDate === today).sort(byTime);
 
   planningEls.carry.innerHTML =
     carried
-      .map((task) => `<li><span>${escapeHtml(task.title)}</span><button type="button" class="action-btn" data-plan-move="${task.id}">Move to today</button></li>`)
+      .map(
+        (task) =>
+          `<li><span>${escapeHtml(task.title)}</span><button type="button" class="action-btn" data-plan-move="${task.id}">Move to today</button></li>`,
+      )
       .join("") || "<li>Nothing carried over.</li>";
 
   planningEls.today.innerHTML =
     todays
-      .map((task) => `<li><span>${task.blockStart ? `${blockRange(task)} · ` : ""}${escapeHtml(task.title)}</span><button type="button" class="action-btn secondary" data-plan-edit="${task.id}">Time block</button></li>`)
-      .join("") || "<li>No tasks for today yet. Add some with ＋ Add Task.</li>";
+      .map(
+        (task) =>
+          `<li><span>${task.blockStart ? `${blockRange(task)} · ` : ""}${escapeHtml(task.title)}</span><button type="button" class="action-btn secondary" data-plan-edit="${task.id}">Time block</button></li>`,
+      )
+      .join("") ||
+    "<li>No tasks for today yet. Add some with ＋ Add Task.</li>";
 }
 
 function tickPlanning() {
@@ -827,7 +1076,9 @@ planningEls.session.addEventListener("submit", (event) => {
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
 function applyTheme() {
-  const useDark = state.settings.theme === "dark" || (state.settings.theme === "system" && darkQuery.matches);
+  const useDark =
+    state.settings.theme === "dark" ||
+    (state.settings.theme === "system" && darkQuery.matches);
   document.documentElement.dataset.theme = useDark ? "dark" : "light";
 }
 
@@ -844,16 +1095,20 @@ darkQuery.addEventListener("change", applyTheme);
 applyTheme();
 
 els.today.textContent = new Date().toLocaleDateString("en-GB", {
-  weekday: "long", day: "numeric", month: "long", year: "numeric",
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
 });
 async function init() {
   try {
-    [state.tasks, state.notes, state.completions, state.delays] = await Promise.all([
-      api.listTasks(),
-      api.listNotes(),
-      api.listCompletions(),
-      api.listDelays(),
-    ]);
+    [state.tasks, state.notes, state.completions, state.delays] =
+      await Promise.all([
+        api.listTasks(),
+        api.listNotes(),
+        api.listCompletions(),
+        api.listDelays(),
+      ]);
   } catch (error) {
     console.error(error);
     notify("Could not load data. Is the Flask server running?");
