@@ -23,6 +23,20 @@ DELAY_FIELDS = {
     "id", "task_id", "title", "from_date", "from_time",
     "to_date", "to_time", "created_at", "created_date",
 }
+CHECKLIST_FIELDS = {"id", "text", "category", "created_date"}
+DEFAULT_CHECKLIST = [
+    ("Read yesterday's notes and reflection", "planning"),
+    ("Review today's tasks and priorities", "planning"),
+    ("Check emails", "work"),
+    ("Check messages and notifications", "work"),
+    ("Review calendar and meetings", "work"),
+    ("Follow up on pending replies", "work"),
+    ("Check assignments and deadlines", "study"),
+    ("Review class notes", "study"),
+    ("Check university portal and announcements", "study"),
+    ("Revise or study for 30 minutes", "study"),
+    ("Log progress and plan tomorrow", "wrap-up"),
+]
 VALID_STATUSES = {"todo", "progress", "done"}
 
 
@@ -78,6 +92,32 @@ def init_db():
                 completed_date TEXT NOT NULL
             )"""
         )
+        # Daily checklist: the items, and which item was checked on which day
+        first_time = db.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'checklist_items'"
+        ).fetchone() is None
+        db.execute(
+            """CREATE TABLE IF NOT EXISTS checklist_items (
+                id INTEGER PRIMARY KEY,
+                text TEXT NOT NULL,
+                category TEXT,
+                created_date TEXT
+            )"""
+        )
+        db.execute(
+            """CREATE TABLE IF NOT EXISTS checklist_log (
+                item_id INTEGER NOT NULL,
+                date TEXT NOT NULL,
+                PRIMARY KEY (item_id, date)
+            )"""
+        )
+        if first_time:  # start with a useful set for a working professional / student
+            db.executemany(
+                "INSERT INTO checklist_items (id, text, category, created_date) "
+                "VALUES (?, ?, ?, date('now', 'localtime'))",
+                [(i + 1, text, category) for i, (text, category) in enumerate(DEFAULT_CHECKLIST)],
+            )
+
         # Every time a task is rescheduled to a later date or time
         db.execute(
             """CREATE TABLE IF NOT EXISTS delays (
@@ -293,6 +333,59 @@ def create_delay():
 
     new_id = insert("delays", delay)
     return jsonify(row_to_json(fetch_one("delays", new_id))), 201
+
+
+# ---------- Daily checklist API ----------
+
+DATE_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+@app.get("/api/checklist")
+def get_checklist():
+    db = get_db()
+    items = db.execute("SELECT * FROM checklist_items ORDER BY id").fetchall()
+    checks = db.execute("SELECT * FROM checklist_log").fetchall()
+    return jsonify(
+        items=[row_to_json(row) for row in items],
+        checks=[row_to_json(row) for row in checks],
+    )
+
+
+@app.post("/api/checklist/items")
+def create_checklist_item():
+    item = clean(request.get_json(silent=True), CHECKLIST_FIELDS)
+    if not item.get("text"):
+        return jsonify(error="Text is required"), 400
+
+    new_id = insert("checklist_items", item)
+    return jsonify(row_to_json(fetch_one("checklist_items", new_id))), 201
+
+
+@app.delete("/api/checklist/items/<int:item_id>")
+def delete_checklist_item(item_id):
+    db = get_db()
+    db.execute("DELETE FROM checklist_log WHERE item_id = ?", (item_id,))
+    db.execute("DELETE FROM checklist_items WHERE id = ?", (item_id,))
+    db.commit()
+    return "", 204
+
+
+@app.put("/api/checklist/checks/<int:item_id>/<date>")
+def check_item(item_id, date):
+    if not DATE_PATTERN.fullmatch(date):
+        return jsonify(error="Date must look like 2026-10-25"), 400
+    db = get_db()
+    db.execute("INSERT OR IGNORE INTO checklist_log (item_id, date) VALUES (?, ?)", (item_id, date))
+    db.commit()
+    return jsonify(itemId=item_id, date=date)
+
+
+@app.delete("/api/checklist/checks/<int:item_id>/<date>")
+def uncheck_item(item_id, date):
+    db = get_db()
+    db.execute("DELETE FROM checklist_log WHERE item_id = ? AND date = ?", (item_id, date))
+    db.commit()
+    return "", 204
 
 
 if __name__ == "__main__":

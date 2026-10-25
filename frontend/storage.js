@@ -8,23 +8,36 @@ async function request(path, { method = "GET", body } = {}) {
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!response.ok) throw new Error(`${method} ${path} failed (${response.status})`);
+  if (!response.ok)
+    throw new Error(`${method} ${path} failed (${response.status})`);
   return response.status === 204 ? null : response.json();
 }
 
 export const api = {
   listTasks: () => request("/tasks"),
   createTask: (task) => request("/tasks", { method: "POST", body: task }),
-  updateTask: (id, changes) => request(`/tasks/${id}`, { method: "PUT", body: changes }),
+  updateTask: (id, changes) =>
+    request(`/tasks/${id}`, { method: "PUT", body: changes }),
   deleteTask: (id) => request(`/tasks/${id}`, { method: "DELETE" }),
   listNotes: () => request("/notes"),
   createNote: (note) => request("/notes", { method: "POST", body: note }),
   deleteNote: (id) => request(`/notes/${id}`, { method: "DELETE" }),
   listCompletions: () => request("/completions"),
-  saveCompletion: (entry) => request(`/completions/${entry.taskId}`, { method: "PUT", body: entry }),
-  deleteCompletion: (taskId) => request(`/completions/${taskId}`, { method: "DELETE" }),
+  saveCompletion: (entry) =>
+    request(`/completions/${entry.taskId}`, { method: "PUT", body: entry }),
+  deleteCompletion: (taskId) =>
+    request(`/completions/${taskId}`, { method: "DELETE" }),
   listDelays: () => request("/delays"),
   createDelay: (entry) => request("/delays", { method: "POST", body: entry }),
+  listChecklist: () => request("/checklist"),
+  createChecklistItem: (item) =>
+    request("/checklist/items", { method: "POST", body: item }),
+  deleteChecklistItem: (id) =>
+    request(`/checklist/items/${id}`, { method: "DELETE" }),
+  checkItem: (id, date) =>
+    request(`/checklist/checks/${id}/${date}`, { method: "PUT" }),
+  uncheckItem: (id, date) =>
+    request(`/checklist/checks/${id}/${date}`, { method: "DELETE" }),
 };
 
 const PREFIX = "productivity-board.";

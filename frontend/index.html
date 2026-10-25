@@ -19,8 +19,12 @@
 
         <div class="board-actions">
           <button type="button" id="add-task-btn">＋ Add Task</button>
-          <button type="button" id="plan-btn" class="ghost-btn">☀ Plan my day</button>
-          <button type="button" id="review-btn" class="ghost-btn">End-of-day review</button>
+          <button type="button" id="plan-btn" class="ghost-btn">
+            ☀ Plan my day
+          </button>
+          <button type="button" id="review-btn" class="ghost-btn">
+            End-of-day review
+          </button>
           <label class="reminder-setting">
             Remind every
             <select id="reminder-interval">
@@ -44,94 +48,187 @@
       <div class="board-meta">
         <span id="today-label" class="board-info"></span>
         <div class="board-info">
-          <span class="late-count">🔴 <span id="commit-count">0</span> commitments due within 7 days</span>
-          <span class="late-count">⏳ <span id="delayed-count">0</span> delayed</span>
+          <span class="late-count"
+            >🔴 <span id="commit-count">0</span> commitments due within 7
+            days</span
+          >
+          <span class="late-count"
+            >⏳ <span id="delayed-count">0</span> delayed</span
+          >
           <span>▣ <span id="total-count">0</span> Tasks</span>
         </div>
       </div>
 
       <div class="workspace">
-      <div class="workspace-main">
-      <nav class="view-switcher" aria-label="Choose view">
-        <button type="button" class="view-btn active" data-view="board">Board</button>
-        <button type="button" class="view-btn" data-view="day">Day</button>
-        <button type="button" class="view-btn" data-view="week">Week</button>
-        <button type="button" class="view-btn" data-view="month">Month</button>
-        <button type="button" class="view-btn" data-view="year">Year</button>
-      </nav>
-
-      <main class="kanban-columns">
-        <section class="kanban-column" data-status="todo">
-          <header class="column-header">
-            <div>
-              <span class="status-dot gray"></span>
-              <h2>To Do</h2>
-              <span class="task-count" id="count-todo">0</span>
+        <div class="workspace-main">
+          <section class="daily-panel" aria-labelledby="daily-title">
+            <header class="daily-head">
+              <button
+                type="button"
+                id="daily-toggle"
+                class="daily-toggle"
+                aria-expanded="true"
+              >
+                <h2 id="daily-title">
+                  ☑ Daily checklist
+                  <span id="daily-progress" class="daily-count"></span>
+                </h2>
+                <span class="chevron" aria-hidden="true">▾</span>
+              </button>
+              <div class="daily-bar"><span id="daily-bar-fill"></span></div>
+            </header>
+            <div id="daily-body">
+              <div id="daily-groups" class="daily-groups"></div>
+              <form id="daily-form" class="daily-form">
+                <input
+                  type="text"
+                  id="daily-text"
+                  placeholder="Add your own daily item..."
+                  required
+                />
+                <select id="daily-category" aria-label="Category">
+                  <option value="work">Work</option>
+                  <option value="study">Study</option>
+                  <option value="planning">Planning</option>
+                  <option value="personal">Personal</option>
+                  <option value="wrap-up">Wrap-up</option>
+                </select>
+                <button type="submit" class="action-btn">Add</button>
+              </form>
             </div>
-            <button type="button" class="column-add" data-status="todo" aria-label="Add to To Do">＋</button>
-          </header>
-          <div class="task-list" id="list-todo"></div>
-        </section>
+          </section>
 
-        <section class="kanban-column" data-status="progress">
-          <header class="column-header">
-            <div>
-              <span class="status-dot orange"></span>
-              <h2>In Progress</h2>
-              <span class="task-count" id="count-progress">0</span>
+          <nav class="view-switcher" aria-label="Choose view">
+            <button type="button" class="view-btn active" data-view="board">
+              Board
+            </button>
+            <button type="button" class="view-btn" data-view="day">Day</button>
+            <button type="button" class="view-btn" data-view="week">
+              Week
+            </button>
+            <button type="button" class="view-btn" data-view="month">
+              Month
+            </button>
+            <button type="button" class="view-btn" data-view="year">
+              Year
+            </button>
+          </nav>
+
+          <main class="kanban-columns">
+            <section class="kanban-column" data-status="todo">
+              <header class="column-header">
+                <div>
+                  <span class="status-dot gray"></span>
+                  <h2>To Do</h2>
+                  <span class="task-count" id="count-todo">0</span>
+                </div>
+                <button
+                  type="button"
+                  class="column-add"
+                  data-status="todo"
+                  aria-label="Add to To Do"
+                >
+                  ＋
+                </button>
+              </header>
+              <div class="task-list" id="list-todo"></div>
+            </section>
+
+            <section class="kanban-column" data-status="progress">
+              <header class="column-header">
+                <div>
+                  <span class="status-dot orange"></span>
+                  <h2>In Progress</h2>
+                  <span class="task-count" id="count-progress">0</span>
+                </div>
+                <button
+                  type="button"
+                  class="column-add"
+                  data-status="progress"
+                  aria-label="Add to In Progress"
+                >
+                  ＋
+                </button>
+              </header>
+              <div class="task-list" id="list-progress"></div>
+            </section>
+
+            <section class="kanban-column" data-status="done">
+              <header class="column-header">
+                <div>
+                  <span class="status-dot green"></span>
+                  <h2>Completed</h2>
+                  <span class="task-count" id="count-done">0</span>
+                </div>
+                <button
+                  type="button"
+                  class="column-add"
+                  data-status="done"
+                  aria-label="Add to Completed"
+                >
+                  ＋
+                </button>
+              </header>
+              <div class="task-list" id="list-done"></div>
+            </section>
+          </main>
+
+          <section id="planner" class="planner" hidden>
+            <div class="planner-nav">
+              <button
+                type="button"
+                id="planner-prev"
+                class="ghost-btn"
+                aria-label="Previous"
+              >
+                ‹
+              </button>
+              <h2 id="planner-title"></h2>
+              <button
+                type="button"
+                id="planner-next"
+                class="ghost-btn"
+                aria-label="Next"
+              >
+                ›
+              </button>
+              <button type="button" id="planner-today" class="ghost-btn">
+                Today
+              </button>
             </div>
-            <button type="button" class="column-add" data-status="progress" aria-label="Add to In Progress">＋</button>
-          </header>
-          <div class="task-list" id="list-progress"></div>
-        </section>
-
-        <section class="kanban-column" data-status="done">
-          <header class="column-header">
-            <div>
-              <span class="status-dot green"></span>
-              <h2>Completed</h2>
-              <span class="task-count" id="count-done">0</span>
-            </div>
-            <button type="button" class="column-add" data-status="done" aria-label="Add to Completed">＋</button>
-          </header>
-          <div class="task-list" id="list-done"></div>
-        </section>
-      </main>
-
-      <section id="planner" class="planner" hidden>
-        <div class="planner-nav">
-          <button type="button" id="planner-prev" class="ghost-btn" aria-label="Previous">‹</button>
-          <h2 id="planner-title"></h2>
-          <button type="button" id="planner-next" class="ghost-btn" aria-label="Next">›</button>
-          <button type="button" id="planner-today" class="ghost-btn">Today</button>
+            <p class="planner-hint">
+              Click a task to edit it, or an empty spot in a day to add one for
+              that date.
+            </p>
+            <div id="planner-grid" class="planner-grid"></div>
+          </section>
         </div>
-        <p class="planner-hint">Click a task to edit it, or an empty spot in a day to add one for that date.</p>
-        <div id="planner-grid" class="planner-grid"></div>
-      </section>
 
-      </div>
-
-      <aside class="notes-panel" aria-labelledby="notes-title">
-        <h2 id="notes-title">Notes</h2>
-        <div id="note-filter" class="note-filter" hidden>
-          <span></span>
-          <button type="button" id="note-filter-clear">Show all ✕</button>
-        </div>
-        <form id="note-form">
-          <select id="note-category" aria-label="Note category">
-            <option value="habit">Habit</option>
-            <option value="reflection">Reflection</option>
-            <option value="time management">Time management</option>
-            <option value="critique">Critique</option>
-            <option value="planning">Planning</option>
-            <option value="other">Other</option>
-          </select>
-          <select id="note-task" aria-label="Attach to task"></select>
-          <textarea id="note-text" rows="3" placeholder="Write a note..."></textarea>
-          <button type="submit" class="action-btn">Add note</button>
-        </form>
-        <ul id="notes-list" class="notes-list"></ul>
-      </aside>
+        <aside class="notes-panel" aria-labelledby="notes-title">
+          <h2 id="notes-title">Notes</h2>
+          <div id="note-filter" class="note-filter" hidden>
+            <span></span>
+            <button type="button" id="note-filter-clear">Show all ✕</button>
+          </div>
+          <form id="note-form">
+            <select id="note-category" aria-label="Note category">
+              <option value="habit">Habit</option>
+              <option value="reflection">Reflection</option>
+              <option value="time management">Time management</option>
+              <option value="critique">Critique</option>
+              <option value="planning">Planning</option>
+              <option value="other">Other</option>
+            </select>
+            <select id="note-task" aria-label="Attach to task"></select>
+            <textarea
+              id="note-text"
+              rows="3"
+              placeholder="Write a note..."
+            ></textarea>
+            <button type="submit" class="action-btn">Add note</button>
+          </form>
+          <ul id="notes-list" class="notes-list"></ul>
+        </aside>
       </div>
     </div>
 
@@ -184,9 +281,15 @@
         <h2>End-of-day review</h2>
         <p id="review-summary" class="review-summary"></p>
         <ul id="review-list" class="review-list"></ul>
-        <textarea id="review-text" rows="4" placeholder="What went well? What would you change tomorrow?"></textarea>
+        <textarea
+          id="review-text"
+          rows="4"
+          placeholder="What went well? What would you change tomorrow?"
+        ></textarea>
         <div class="dialog-buttons">
-          <button type="button" id="review-close" class="ghost-btn">Close</button>
+          <button type="button" id="review-close" class="ghost-btn">
+            Close
+          </button>
           <button type="submit">Save reflection</button>
         </div>
       </form>
@@ -195,14 +298,24 @@
     <dialog id="planning-dialog">
       <div id="planning-setup">
         <h2>Plan your day</h2>
-        <p class="review-summary">Choose how long you want to plan. A timer keeps you focused.</p>
+        <p class="review-summary">
+          Choose how long you want to plan. A timer keeps you focused.
+        </p>
         <div class="duration-row">
-          <button type="button" class="ghost-btn" data-minutes="15">15 min</button>
-          <button type="button" class="ghost-btn" data-minutes="30">30 min</button>
-          <button type="button" class="ghost-btn" data-minutes="45">45 min</button>
+          <button type="button" class="ghost-btn" data-minutes="15">
+            15 min
+          </button>
+          <button type="button" class="ghost-btn" data-minutes="30">
+            30 min
+          </button>
+          <button type="button" class="ghost-btn" data-minutes="45">
+            45 min
+          </button>
         </div>
         <div class="dialog-buttons">
-          <button type="button" class="ghost-btn" data-close-planning>Cancel</button>
+          <button type="button" class="ghost-btn" data-close-planning>
+            Cancel
+          </button>
         </div>
       </div>
 
@@ -218,9 +331,15 @@
         <ul id="planning-carry" class="review-list"></ul>
         <h3>Today</h3>
         <ul id="planning-today" class="review-list"></ul>
-        <textarea id="planning-text" rows="3" placeholder="Top priorities for today..."></textarea>
+        <textarea
+          id="planning-text"
+          rows="3"
+          placeholder="Top priorities for today..."
+        ></textarea>
         <div class="dialog-buttons">
-          <button type="button" class="ghost-btn" data-close-planning>Cancel</button>
+          <button type="button" class="ghost-btn" data-close-planning>
+            Cancel
+          </button>
           <button type="submit">Finish planning</button>
         </div>
       </form>

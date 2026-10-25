@@ -178,7 +178,6 @@
 }
 
 /* Delayed tasks and year view */
-
 [data-theme="dark"] .delay-tag {
   background: #450a0a;
   color: #fca5a5;
@@ -231,4 +230,23 @@
 [data-theme="dark"] .day-upcoming {
   background: #2a1010;
   color: #fca5a5;
+}
+
+/* Daily checklist */
+[data-theme="dark"] .daily-panel {
+  background: #0f172a;
+  border-color: #1f2937;
+}
+[data-theme="dark"] .daily-toggle,
+[data-theme="dark"] .daily-item label {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .daily-bar {
+  background: #1f2937;
+}
+[data-theme="dark"] .daily-form input[type="text"],
+[data-theme="dark"] .daily-form select {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-color: #334155;
 }

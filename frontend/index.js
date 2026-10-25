@@ -7,7 +7,13 @@ const state = {
   notes: [],
   completions: [],
   delays: [],
-  settings: { reminderMinutes: 30, theme: "system", ...load("settings", {}) },
+  checklist: { items: [], checks: [] },
+  settings: {
+    reminderMinutes: 30,
+    theme: "system",
+    dailyCollapsed: false,
+    ...load("settings", {}),
+  },
   editingId: null,
   noteFilter: null,
   view: "board",
@@ -539,6 +545,12 @@ els.interval.addEventListener("change", () => {
 setInterval(() => {
   checkReminders();
   checkDeadlines();
+  if (checklistDay && todayISO() !== checklistDay) {
+    // A new day started while the page was open: reset the checklist and refresh the views
+    checklistDay = todayISO();
+    renderChecklist();
+    render();
+  }
 }, 30000);
 
 /* ---------- Notes ---------- */
@@ -803,6 +815,7 @@ function renderDayDetail(iso) {
     ${delayed.map(delayLine).join("") || '<p class="day-empty">Nothing was delayed from this day.</p>'}
     <div class="day-section">Notes &amp; reflections (${notes.length})</div>
     ${notes.map(dayNote).join("") || '<p class="day-empty">No notes written this day.</p>'}
+    ${checklistSummary(iso)}
   </div>`;
 }
 
@@ -959,6 +972,142 @@ els.plannerGrid.addEventListener("click", (event) => {
   if (cell) openAddDialog("todo", cell.dataset.date);
 });
 
+/* ---------- Daily checklist ---------- */
+
+const CHECKLIST_ORDER = ["planning", "work", "study", "personal", "wrap-up"];
+let checklistDay = null;
+const dailyEls = {
+  body: $("daily-body"),
+  toggle: $("daily-toggle"),
+  progress: $("daily-progress"),
+  bar: $("daily-bar-fill"),
+  groups: $("daily-groups"),
+  form: $("daily-form"),
+};
+
+const checkedOn = (date) =>
+  new Set(
+    state.checklist.checks
+      .filter((check) => check.date === date)
+      .map((check) => check.itemId),
+  );
+const groupOf = (item) =>
+  CHECKLIST_ORDER.includes(item.category) ? item.category : "personal";
+
+function renderChecklist() {
+  const items = state.checklist.items;
+  const checked = checkedOn(todayISO());
+  const doneCount = items.filter((item) => checked.has(item.id)).length;
+
+  dailyEls.progress.textContent = items.length
+    ? `${doneCount}/${items.length}`
+    : "";
+  dailyEls.bar.style.width = items.length
+    ? `${(doneCount / items.length) * 100}%`
+    : "0";
+
+  dailyEls.groups.innerHTML =
+    CHECKLIST_ORDER.map((category) => {
+      const group = items.filter((item) => groupOf(item) === category);
+      if (!group.length) return "";
+      const rows = group
+        .map(
+          (item) => `
+        <div class="daily-item ${checked.has(item.id) ? "checked" : ""}">
+          <label>
+            <input type="checkbox" data-item="${item.id}" ${checked.has(item.id) ? "checked" : ""} />
+            <span>${escapeHtml(item.text)}</span>
+          </label>
+          <button type="button" class="daily-delete" data-delete="${item.id}" aria-label="Remove this item">✕</button>
+        </div>`,
+        )
+        .join("");
+      return `<div class="daily-group"><h3>${category}</h3>${rows}</div>`;
+    }).join("") ||
+    `<p class="day-empty">No daily items yet. Add your first one below.</p>`;
+}
+
+/* For reflection: how the checklist went on a given day (shown in Day view) */
+function checklistSummary(iso) {
+  const today = todayISO();
+  const items = state.checklist.items.filter(
+    (item) => (item.createdDate || "0000-00-00") <= iso,
+  );
+  if (!items.length || iso > today) return "";
+
+  const checked = checkedOn(iso);
+  const missed = items.filter((item) => !checked.has(item.id));
+  const note = missed.length
+    ? `${iso === today ? "Still to do" : "Missed"}: ${missed.map((item) => escapeHtml(item.text)).join(", ")}`
+    : "Everything checked ✓";
+  return `<div class="day-section">Daily checklist (${items.length - missed.length}/${items.length})</div><p class="day-empty">${note}</p>`;
+}
+
+function setDailyCollapsed(collapsed) {
+  state.settings.dailyCollapsed = collapsed;
+  dailyEls.body.hidden = collapsed;
+  dailyEls.toggle.setAttribute("aria-expanded", String(!collapsed));
+}
+
+dailyEls.toggle.addEventListener("click", () => {
+  setDailyCollapsed(!state.settings.dailyCollapsed);
+  save("settings", state.settings);
+});
+
+dailyEls.groups.addEventListener("change", (event) => {
+  const box = event.target.closest("[data-item]");
+  if (!box) return;
+
+  const itemId = Number(box.dataset.item);
+  const date = todayISO();
+  if (box.checked) {
+    state.checklist.checks.push({ itemId, date });
+    sync(api.checkItem(itemId, date));
+  } else {
+    state.checklist.checks = state.checklist.checks.filter(
+      (check) => !(check.itemId === itemId && check.date === date),
+    );
+    sync(api.uncheckItem(itemId, date));
+  }
+  renderChecklist();
+  if (state.view !== "board") renderPlanner();
+});
+
+dailyEls.groups.addEventListener("click", (event) => {
+  const remove = event.target.closest("[data-delete]");
+  if (!remove || !confirm("Remove this item from your daily checklist?"))
+    return;
+
+  const itemId = Number(remove.dataset.delete);
+  state.checklist.items = state.checklist.items.filter(
+    (item) => item.id !== itemId,
+  );
+  state.checklist.checks = state.checklist.checks.filter(
+    (check) => check.itemId !== itemId,
+  );
+  sync(api.deleteChecklistItem(itemId));
+  renderChecklist();
+});
+
+dailyEls.form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const text = $("daily-text").value.trim();
+  if (!text) return;
+
+  const item = {
+    id: Date.now(),
+    text,
+    category: $("daily-category").value,
+    createdDate: todayISO(),
+  };
+  state.checklist.items.push(item);
+  sync(api.createChecklistItem(item));
+  dailyEls.form.reset();
+  renderChecklist();
+});
+
+setDailyCollapsed(state.settings.dailyCollapsed);
+
 /* ---------- Planning mode ---------- */
 
 const planning = { timerId: null, endsAt: 0, minutes: 0 };
@@ -1102,13 +1251,19 @@ els.today.textContent = new Date().toLocaleDateString("en-GB", {
 });
 async function init() {
   try {
-    [state.tasks, state.notes, state.completions, state.delays] =
-      await Promise.all([
-        api.listTasks(),
-        api.listNotes(),
-        api.listCompletions(),
-        api.listDelays(),
-      ]);
+    [
+      state.tasks,
+      state.notes,
+      state.completions,
+      state.delays,
+      state.checklist,
+    ] = await Promise.all([
+      api.listTasks(),
+      api.listNotes(),
+      api.listCompletions(),
+      api.listDelays(),
+      api.listChecklist(),
+    ]);
   } catch (error) {
     console.error(error);
     notify("Could not load data. Is the Flask server running?");
@@ -1116,6 +1271,8 @@ async function init() {
   state.tasks.filter((task) => task.status === "done").forEach(syncCompletion); // backfill history
   render();
   renderNotes();
+  renderChecklist();
+  checklistDay = todayISO();
   checkReminders();
   checkDeadlines();
 }
