@@ -9,3 +9,8 @@ venv/
 .venv/
 __pycache__/
 .venv-linux/
+tasks.json
+delays.json
+completions.json
+snapshot.json
+snapshot.md
