@@ -1,3 +1,4 @@
+import os
 import re
 import sqlite3
 from pathlib import Path
@@ -390,4 +391,4 @@ def uncheck_item(item_id, date):
 
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True)
+    app.run(host="127.0.0.1", port=5000, debug=os.environ.get("BOARD_DEBUG") == "1")

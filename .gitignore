@@ -2,3 +2,10 @@ venv/
 .venv/
 __pycache__/
 *.db
+board.db
+snapshot.json
+snapshot.md
+venv/
+.venv/
+__pycache__/
+.venv-linux/

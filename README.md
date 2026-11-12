@@ -3,7 +3,7 @@
 A personal Kanban-style productivity tracker for planning days, weeks and months.
 Built with vanilla JavaScript on the front end and Flask + SQLite on the back end.
 
-![Board view](127.0.0.1_5000_.png.png)
+![Board view](screenshot.png)
 
 ## Features
 
@@ -27,7 +27,7 @@ Built with vanilla JavaScript on the front end and Flask + SQLite on the back en
 git clone https://github.com/azizshahid/Kaban-board.git
 cd Kaban-board
 python -m venv venv
-venv\Scripts\activate        # Windows (macOS/Linux: source venv/bin/activate)
+venv\Scripts\activate        # Windows (macOS/Linux: source .venv-linux/bin/activate)
 pip install flask
 python backend/app.py
 ```
@@ -48,3 +48,24 @@ backend/    app.py
 
 - Reminders only fire while the page is open in a browser tab.
 - Theme and reminder interval are stored per device in `localStorage`; tasks and notes live in SQLite.
+## Ubuntu setup
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip
+git clone https://github.com/azizshahid/Kaban-board.git
+cd Kaban-board
+chmod +x start-board.sh
+./start-board.sh
+```
+
+Manual alternative:
+
+```bash
+python3 -m venv .venv-linux
+source .venv-linux/bin/activate
+pip install flask
+python backend/app.py
+```
+
+The server listens on 127.0.0.1 only. Set `BOARD_DEBUG=1` to turn on Flask debug mode while developing.
