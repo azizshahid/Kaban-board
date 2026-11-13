@@ -96,6 +96,14 @@ const blockRange = (task) => {
   const end = toMinutes(task.blockStart) + (task.blockMinutes || 30);
   return `${task.blockStart}–${pad(Math.floor(end / 60) % 24)}:${pad(end % 60)}`;
 };
+/* Estimates: minutes of work, shown as 1h 30m */
+const formatMinutes = (minutes) => {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return hours ? (rest ? `${hours}h ${rest}m` : `${hours}h`) : `${rest}m`;
+};
+const sumEstimates = (tasks) => tasks.reduce((total, task) => total + (task.estimateMinutes || 0), 0);
+
 const taskStart = (task) => task.blockStart || task.dueTime || "99:99";
 const byTime = (a, b) => taskStart(a).localeCompare(taskStart(b));
 
@@ -275,7 +283,7 @@ function createCard(task) {
   }
   const footer = isDone
     ? `<span class="done-date">✓ Completed</span>`
-    : `<span class="due-date ${isOverdue ? "overdue" : ""}">◷ ${formatDeadline(task)}</span>${task.blockStart ? `<span class="block-tag">▦ ${blockRange(task)}</span>` : ""}`;
+    : `<span class="due-date ${isOverdue ? "overdue" : ""}">◷ ${formatDeadline(task)}</span>${task.blockStart ? `<span class="block-tag">▦ ${blockRange(task)}</span>` : ""}${task.estimateMinutes ? `<span class="estimate-tag">⏱ ${formatMinutes(task.estimateMinutes)}</span>` : ""}`;
 
   return `
     <article class="task-card ${isDone ? "completed-card" : ""} ${isCommitSoon(task) ? "commit-soon" : ""}" data-id="${task.id}">
@@ -333,6 +341,7 @@ function openAddDialog(status, date = todayISO(), blockStart = "") {
   $("task-date").value = date;
   $("task-time").value = "";
   setCommitField(null);
+  $("task-estimate").value = "";
   $("task-block-start").value = blockStart;
   $("task-block-minutes").value = blockStart ? "30" : "";
   els.taskDialog.showModal();
@@ -350,6 +359,7 @@ function openEditDialog(task) {
   $("task-date").value = task.dueDate;
   $("task-time").value = task.dueTime || "";
   setCommitField(task);
+  $("task-estimate").value = task.estimateMinutes || "";
   $("task-block-start").value = task.blockStart || "";
   $("task-block-minutes").value = task.blockMinutes
     ? String(task.blockMinutes)
@@ -370,6 +380,7 @@ function readTaskForm() {
       ? Number($("task-block-minutes").value) || 30
       : null,
     commitDate: $("task-commit").value || null,
+    estimateMinutes: Number($("task-estimate").value) || null,
   };
 }
 
@@ -750,7 +761,7 @@ const dayItems = (iso) => ({
 const plannerChip = (task) => {
   const time = task.blockStart || task.dueTime;
   const late = isPastDeadline(task);
-  return `<button type="button" class="chip ${task.status} ${late ? "late" : ""}" data-id="${task.id}">${late ? "⏳ " : ""}${time ? `${time} ` : ""}${escapeHtml(task.title)}</button>`;
+  return `<button type="button" class="chip ${task.status} ${late ? "late" : ""}" data-id="${task.id}">${late ? "⏳ " : ""}${time ? `${time} ` : ""}${escapeHtml(task.title)}${task.estimateMinutes ? ` · ${formatMinutes(task.estimateMinutes)}` : ""}</button>`;
 };
 
 const doneChip = (entry) =>
@@ -819,6 +830,25 @@ function renderDayDetail(iso) {
   </div>`;
 }
 
+/* Total estimated work for whatever the planner is showing (day, week or month) */
+function plannerTotalText() {
+  if (state.view === "year") return "";
+
+  const { start, count } = plannerRange();
+  let from = toISO(start);
+  let to = toISO(addDays(start, Math.max(count, 1) - 1));
+  if (state.view === "month") {
+    const cursor = state.cursor;
+    from = toISO(new Date(cursor.getFullYear(), cursor.getMonth(), 1));
+    to = toISO(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0));
+  }
+
+  const tasks = state.tasks.filter((task) => task.status !== "done" && task.dueDate >= from && task.dueDate <= to);
+  const withoutEstimate = tasks.filter((task) => !task.estimateMinutes).length;
+  const plural = tasks.length === 1 ? "" : "s";
+  return `Estimated work: ${formatMinutes(sumEstimates(tasks))} across ${tasks.length} open task${plural}${withoutEstimate ? ` (${withoutEstimate} without an estimate)` : ""}`;
+}
+
 function renderYear(year) {
   return Array.from({ length: 12 }, (_, month) => {
     const prefix = `${year}-${pad(month + 1)}`;
@@ -857,6 +887,7 @@ function renderPlanner() {
   const isMonth = state.view === "month";
 
   els.plannerTitle.textContent = title;
+  $("planner-total").textContent = plannerTotalText();
   els.plannerGrid.className = `planner-grid ${state.view}`;
 
   if (state.view === "year") {
@@ -877,6 +908,7 @@ function renderPlanner() {
     const iso = toISO(date);
     const { open, done, notes, delayed, commits } = dayItems(iso);
     const openCommit = commits.some((task) => task.status !== "done");
+    const dayTotal = sumEstimates(open);
     const chips =
       commits.map(commitChip).join("") +
       open.map(plannerChip).join("") +
@@ -888,7 +920,7 @@ function renderPlanner() {
       ? date.getDate()
       : date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
     return `<div class="day-cell ${iso === today ? "today" : ""} ${outside ? "outside" : ""} ${openCommit ? "has-commit" : ""} ${openCommit && daysUntil(iso) <= 7 ? "commit-near" : ""}" data-date="${iso}">
-      <div class="day-head">${head}</div>${chips}</div>`;
+      <div class="day-head">${head}${dayTotal ? ` <span class="day-total">⏱ ${formatMinutes(dayTotal)}</span>` : ""}</div>${chips}</div>`;
   }).join("");
 
   els.plannerGrid.innerHTML = labels + cells;

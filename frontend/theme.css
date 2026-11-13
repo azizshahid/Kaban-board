@@ -250,3 +250,8 @@
   color: #e2e8f0;
   border-color: #334155;
 }
+
+/* Estimates */
+[data-theme="dark"] .estimate-tag,
+[data-theme="dark"] .day-total,
+[data-theme="dark"] .planner-total { color: #5eead4; }

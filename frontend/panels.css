@@ -678,3 +678,9 @@
 .daily-form .action-btn {
   padding: 8px 14px;
 }
+
+/* Estimates */
+.estimate-tag { color: #0f766e; font-size: 9px; font-weight: 700; }
+.day-total { margin-left: 6px; color: #0f766e; font-size: 9px; font-weight: 700; }
+.planner-total { margin: 0 0 12px; color: #0f766e; font-size: 11px; font-weight: 700; }
+.planner-total:empty { display: none; }

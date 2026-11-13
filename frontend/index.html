@@ -196,7 +196,8 @@
                 Today
               </button>
             </div>
-            <p class="planner-hint">
+            <p id="planner-total" class="planner-total"></p>
+        <p class="planner-hint">
               Click a task to edit it, or an empty spot in a day to add one for
               that date.
             </p>
@@ -252,6 +253,10 @@
           Commitment deadline (optional)
           <input type="date" id="task-commit" />
           <small id="commit-hint" class="commit-hint"></small>
+        </label>
+        <label class="field-label">
+          Estimate in minutes (optional)
+          <input type="number" id="task-estimate" min="1" max="1440" step="5" placeholder="e.g. 90" />
         </label>
         <label class="field-label">
           Time block (optional)

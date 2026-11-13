@@ -16,7 +16,7 @@ TASK_FIELDS = {
     "id", "title", "description", "label", "status",
     "due_date", "started_at", "last_reminder_at", "completed_at",
     "due_time", "deadline_stage", "block_start", "block_minutes",
-    "commit_date", "commit_changes", "commit_original",
+    "commit_date", "commit_changes", "commit_original", "estimate_minutes",
 }
 NOTE_FIELDS = {"id", "category", "text", "date", "task_id"}
 COMPLETION_FIELDS = {"task_id", "title", "label", "completed_at", "completed_date"}
@@ -142,6 +142,7 @@ def init_db():
             ("tasks", "commit_date", "TEXT"),
             ("tasks", "commit_changes", "INTEGER DEFAULT 0"),
             ("tasks", "commit_original", "TEXT"),
+            ("tasks", "estimate_minutes", "INTEGER"),
             ("notes", "task_id", "INTEGER"),
         ):
             existing = {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
@@ -192,6 +193,16 @@ def index():
     return app.send_static_file("index.html")
 
 
+def check_estimate(values):
+    """estimate_minutes is optional; when given it must be a whole number of minutes."""
+    value = values.get("estimate_minutes")
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 1440:
+        return "estimate_minutes must be a whole number between 1 and 1440"
+    return None
+
+
 # ---------- Tasks API ----------
 
 @app.get("/api/tasks")
@@ -205,6 +216,9 @@ def create_task():
     task = clean(request.get_json(silent=True), TASK_FIELDS)
     task.pop("commit_changes", None)   # only the server decides these two
     task.pop("commit_original", None)
+    estimate_error = check_estimate(task)
+    if estimate_error:
+        return jsonify(error=estimate_error), 400
     if not task.get("title") or task.get("status") not in VALID_STATUSES:
         return jsonify(error="A title and a valid status are required"), 400
 
@@ -216,6 +230,9 @@ def create_task():
 def update_task(task_id):
     changes = clean(request.get_json(silent=True), TASK_FIELDS)
     changes.pop("id", None)  # the id never changes
+    estimate_error = check_estimate(changes)
+    if estimate_error:
+        return jsonify(error=estimate_error), 400
     if not changes:
         return jsonify(error="Nothing to update"), 400
     if "status" in changes and changes["status"] not in VALID_STATUSES:

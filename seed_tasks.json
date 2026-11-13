@@ -1,0 +1,22 @@
+[
+ {"title":"Munish: confirm domain spelling, minimum prices (domain and site), stack and hosting","label":"Munish","dueDate":"2026-11-12","estimateMinutes":30,"description":"Inputs the Munish chat needs before research. Domain and site have separate minimums."},
+ {"title":"Munish: buyer-pool and domain research (cited comps, low/base/high value)","label":"Munish","dueDate":"2026-11-13","estimateMinutes":180,"description":"Cited sources only. No invented comps. Output feeds the decision gate."},
+ {"title":"Munish: DECISION GATE - revamp hour budget and scope from base value","label":"Munish","dueDate":"2026-11-13","description":"Effort proportional to realistic value. Approve before any build."},
+ {"title":"Munish: rebrand pass on staging (remove client name and data)","label":"Munish","dueDate":"2026-11-15","description":"Scope and hours set at the decision gate."},
+ {"title":"Munish: revamp build (scope per decision gate)","label":"Munish","dueDate":"2026-11-21","description":"Time-boxed to the gate decision."},
+ {"title":"Munish: QA, listing copy, buyer list and channels ready","label":"Munish","dueDate":"2026-11-22"},
+ {"title":"Munish: LIST domain and site for sale","label":"Munish","dueDate":"2026-11-23","commitDate":"2026-11-23","description":"Target listing date."},
+ {"title":"Munish: HARD STOP - listing must be live","label":"Munish","dueDate":"2026-11-30","commitDate":"2026-11-30","description":"Backstop if the 23 Nov target slips."},
+ {"title":"POD: gather inputs (accounts, designs and rights, design method, buyer country, Pinterest analytics)","label":"POD","dueDate":"2026-11-12","estimateMinutes":45},
+ {"title":"POD: niche scoring method and shortlist of 2-3 (cited research)","label":"POD","dueDate":"2026-11-13","estimateMinutes":120},
+ {"title":"POD: pick niche, provider and marketplace within the $10/month budget","label":"POD","dueDate":"2026-11-14","estimateMinutes":90},
+ {"title":"POD: verify holiday print and shipping cutoffs from official sources","label":"POD","dueDate":"2026-11-14","estimateMinutes":45,"description":"Cite the sources. Needed before listing."},
+ {"title":"POD: design batch plan and first designs","label":"POD","dueDate":"2026-11-15","description":"Batch size proposed and justified in the POD chat."},
+ {"title":"POD: listing template and metrics log live","label":"POD","dueDate":"2026-11-16"},
+ {"title":"POD: SPRINT GATE - first batch listed on at least one marketplace","label":"POD","dueDate":"2026-11-16","commitDate":"2026-11-23","description":"Target 16 Nov, latest start 23 Nov. Sprint runs 30 days from the actual day 1."},
+ {"title":"Yarnimals: finish UTM placement and validate in GA4","label":"Yarnimals","dueDate":"2026-11-13","estimateMinutes":90},
+ {"title":"Yarnimals: confirm every order is attributable (order and conversion tracking)","label":"Yarnimals","dueDate":"2026-11-14","estimateMinutes":90},
+ {"title":"Yarnimals: shortlist 3-5 highest-leverage conversion fixes from the audit","label":"Yarnimals","dueDate":"2026-11-16","estimateMinutes":120},
+ {"title":"Systems: push board steps 2-7 (estimate field, export, MCP) to GitHub","label":"Systems","dueDate":"2026-11-13","estimateMinutes":30},
+ {"title":"Hub: Sunday review (gate results, export snapshot, plan week 2)","label":"Systems","dueDate":"2026-11-15","estimateMinutes":30}
+]
