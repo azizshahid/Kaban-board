@@ -26,7 +26,15 @@ DELAY_FIELDS = {
     "to_date", "to_time", "created_at", "created_date",
 }
 CHECKLIST_FIELDS = {"id", "text", "category", "created_date"}
-DEFAULT_CHECKLIST = [
+AGENCY_MIGRATION = "checklist_agency_v1"
+AGENCY_CHECKLIST = [  # (id, text, category); fixed ids so the migration is repeatable
+    (1001, "Pick at most 3 cards for today", "planning"),
+    (1002, "Main-track block", "work"),
+    (1003, "Second-track block", "work"),
+    (1004, "Yarnimals slice", "work"),
+    (1005, "Log progress and plan tomorrow", "wrap-up"),
+]
+OLD_DEFAULT_CHECKLIST = [  # the original starter list, ids 1..11, used only to find them
     ("Read yesterday's notes and reflection", "planning"),
     ("Review today's tasks and priorities", "planning"),
     ("Check emails", "work"),
@@ -113,12 +121,7 @@ def init_db():
                 PRIMARY KEY (item_id, date)
             )"""
         )
-        if first_time:  # start with a useful set for a working professional / student
-            db.executemany(
-                "INSERT INTO checklist_items (id, text, category, created_date) "
-                "VALUES (?, ?, ?, date('now', 'localtime'))",
-                [(i + 1, text, category) for i, (text, category) in enumerate(DEFAULT_CHECKLIST)],
-            )
+        # The starter checklist is created by the one-time migration at the end of init_db.
 
         # Every time a task is rescheduled to a later date or time
         db.execute(
@@ -145,10 +148,30 @@ def init_db():
             ("tasks", "commit_original", "TEXT"),
             ("tasks", "estimate_minutes", "INTEGER"),
             ("notes", "task_id", "INTEGER"),
+            ("checklist_items", "archived_date", "TEXT"),
         ):
             existing = {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
             if column not in existing:
                 db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
+
+        # One-time migration to the agency checklist. Recorded in `meta`, so it never runs twice.
+        db.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)")
+        if db.execute("SELECT 1 FROM meta WHERE key = ?", (AGENCY_MIGRATION,)).fetchone() is None:
+            if not first_time:  # an existing board: hide the old defaults, never delete anything
+                for item_id, (text, _category) in enumerate(OLD_DEFAULT_CHECKLIST, start=1):
+                    db.execute(
+                        "UPDATE checklist_items SET archived_date = date('now', 'localtime') "
+                        "WHERE id = ? AND text = ? AND archived_date IS NULL",
+                        (item_id, text),
+                    )
+            db.executemany(
+                "INSERT OR IGNORE INTO checklist_items (id, text, category, created_date) "
+                "VALUES (?, ?, ?, date('now', 'localtime'))",
+                AGENCY_CHECKLIST,
+            )
+            db.execute(
+                "INSERT INTO meta (key, value) VALUES (?, date('now', 'localtime'))", (AGENCY_MIGRATION,)
+            )
 
 
 # ---------- Helpers: JavaScript uses camelCase, the database uses snake_case ----------

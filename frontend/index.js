@@ -1017,6 +1017,10 @@ const dailyEls = {
   form: $("daily-form"),
 };
 
+/* An item counts on a day if it existed then and had not been archived yet */
+const isActiveOn = (item, iso) =>
+  (item.createdDate || "0000-00-00") <= iso && (!item.archivedDate || iso < item.archivedDate);
+
 const checkedOn = (date) =>
   new Set(
     state.checklist.checks
@@ -1027,7 +1031,7 @@ const groupOf = (item) =>
   CHECKLIST_ORDER.includes(item.category) ? item.category : "personal";
 
 function renderChecklist() {
-  const items = state.checklist.items;
+  const items = state.checklist.items.filter((item) => isActiveOn(item, todayISO()));
   const checked = checkedOn(todayISO());
   const doneCount = items.filter((item) => checked.has(item.id)).length;
 
@@ -1062,9 +1066,7 @@ function renderChecklist() {
 /* For reflection: how the checklist went on a given day (shown in Day view) */
 function checklistSummary(iso) {
   const today = todayISO();
-  const items = state.checklist.items.filter(
-    (item) => (item.createdDate || "0000-00-00") <= iso,
-  );
+  const items = state.checklist.items.filter((item) => isActiveOn(item, iso));
   if (!items.length || iso > today) return "";
 
   const checked = checkedOn(iso);

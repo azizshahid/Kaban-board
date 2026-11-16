@@ -104,9 +104,19 @@ def to_markdown(snap):
 
     items, checks = snap["checklist"]["items"], snap["checklist"]["checks"]
     days = [(date.today() - timedelta(days=n)).isoformat() for n in range(7)]
-    rows = [
-        f"- {day}: {sum(1 for c in checks if c['date'] == day)}/{len(items)} checked" for day in days
-    ]
+
+    def active_ids(day):  # items that existed, and were not archived yet, on that day
+        return {
+            i["id"]
+            for i in items
+            if (i.get("createdDate") or "0000-00-00") <= day and (not i.get("archivedDate") or day < i["archivedDate"])
+        }
+
+    rows = []
+    for day in days:
+        ids = active_ids(day)
+        done = sum(1 for c in checks if c["date"] == day and c["itemId"] in ids)
+        rows.append(f"- {day}: {done}/{len(ids)} checked")
     section("Daily checklist (last 7 days)", rows if items else [], "No checklist items.")
 
     if "notes" in snap:
